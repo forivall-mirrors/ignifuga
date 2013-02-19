@@ -819,8 +819,6 @@ if __name__ == '__main__':
                   help="Project Name (default: com.mdqinc.ignifuga)")
     parser.add_option("-a", "--asset", dest="assets", default=[], action="append",
                   help="Asset location")
-    parser.add_option("-D", "--dependencies", dest="dependencies", default=False, action="store_true",
-                  help="Install required dependencies and exit")
     parser.add_option("-w", "--wallpaper",
         action="store_true", dest="wallpaper", default=False,
         help="Build a Live Wallpaper (only valid for Android)")
@@ -879,11 +877,6 @@ if __name__ == '__main__':
         help="Module name under which to build the contents of src (default: ignifuga)")
 
     (options, args) = parser.parse_args()
-
-
-    if options.dependencies:
-        install_host_tools(ROOT_DIR, ANDROID_NDK, ANDROID_SDK)
-        exit()
 
     if options.available_platforms:
         print "Available Platforms: 'all',", str(AVAILABLE_PLATFORMS)[1:-1]

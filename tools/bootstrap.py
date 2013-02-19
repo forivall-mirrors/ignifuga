@@ -75,7 +75,7 @@ def check_tool(tool, fatal=True):
     tool_path = output.split('\n')[0]
     if not isfile(tool_path):
         if fatal:
-            print "Can not find %s, try running schafer -D to install dependencies automatically" % tool
+            print "Can not find %s, try running bootstrap.py to install dependencies automatically" % tool
             exit()
         else:
             return None
@@ -259,7 +259,7 @@ if __name__ == '__main__':
 
     if system == 'Linux':
         print 'I need to install the following development packages and build dependencies:'
-        base_pkgs = 'mercurial git-core rsync python-dev mingw-w64 g++-mingw-w64 mingw-w64-tools make gcc-4.6 automake autoconf openjdk-6-jdk gcc-multilib g++-multilib libx11-dev wget nasm libxext-dev libxinerama-dev mesa-common-dev libusb-1.0-0-dev libasound2-dev libpulse-dev libtool'
+        base_pkgs = 'mercurial git-core rsync python-dev mingw-w64 g++-mingw-w64 mingw-w64-tools make gcc-4.6 automake autoconf openjdk-6-jdk gcc-multilib g++-multilib libx11-dev wget nasm libxext-dev libxinerama-dev mesa-common-dev libusb-1.0-0-dev libasound2-dev libpulse-dev libtool ant'
         print base_pkgs
         if processor == 'x86_64':
             if options.noi386:

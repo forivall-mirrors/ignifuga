@@ -1,5 +1,5 @@
 from copy import deepcopy
-import os
+import os, platform
 from os.path import *
 from log import error, info
 from util import find_xcode, find_apple_sdk
@@ -258,7 +258,7 @@ def prepare_arm_android_env(target, pp=None, openmp=False, api_level=10, gcc='4.
         error('No Android SDK location provided (use command line parameters or environment variable ANDROID_SDK)')
         exit()
 
-    if not isdir(ANDROID_NDK) or not isfile(join(ANDROID_NDK, 'ndk-build')) or not isdir(join(ANDROID_NDK,"toolchains/arm-linux-androideabi-%s/prebuilt/linux-x86/bin" % gcc)):
+    if not isdir(ANDROID_NDK) or not isfile(join(ANDROID_NDK, 'ndk-build')) or not isdir(join(ANDROID_NDK,"toolchains/arm-linux-androideabi-%s/prebuilt/%s-x86/bin" % (gcc, platform.system().lower()))):
         error('Can not locate Valid Android NDK at %s, install or update it' % (ANDROID_NDK,))
         exit()
     if ANDROID_SDK == None or not isdir(ANDROID_SDK) or  not isfile(join(ANDROID_SDK, 'tools', 'android')):

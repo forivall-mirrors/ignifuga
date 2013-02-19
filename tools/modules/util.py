@@ -52,7 +52,7 @@ def check_tool(tool, fatal=True):
     tool_path = output.split('\n')[0]
     if not isfile(tool_path):
         if fatal:
-            error("Can not find %s, try running schafer -D to install dependencies automatically" % tool)
+            error("Can not find %s, try running bootstrap.py to install dependencies automatically" % tool)
             exit()
         else:
             return None
@@ -160,7 +160,7 @@ def validate_android_api_level(level, ANDROID_SDK):
     if tool is None:
         tool = join(ANDROID_SDK, 'tools', 'android')
         if not isfile(tool):
-            error("Could not find the 'android' tool from the Android SDK. Try executing schafer -D to install the SDK")
+            error("Could not find the 'android' tool from the Android SDK. Try executing bootstrap.py to install the SDK")
             exit()
     # Check that the api level exists
     cmd = '%s list targets' % tool
@@ -200,34 +200,34 @@ def check_host_tools():
         error('Warning: Unsupported host platform/architecture %s %s %s. Proceed with caution. No really, this thing may blow up any minute now' % (system, arch, distro_name))
 
     if find_cython() == None:
-        error("Can not find Cython, run with -D to install dependencies automatically")
+        error("Can not find Cython, run bootstrap.py to install dependencies automatically")
         exit()
 
     if check_tool('rsync', False) == None:
-        error("Can not find Rsync, run with -D to install dependencies automatically")
+        error("Can not find Rsync, run bootstrap.py to install dependencies automatically")
         exit()
 
     if not check_gnutools():
-        error("Can not find compilation tools (Make, GCC), run with -D to install dependencies automatically")
+        error("Can not find compilation tools (Make, GCC), run bootstrap.py to install dependencies automatically")
         exit()
 
     if system == 'Darwin':
         check_xcode()
         nasm = check_version('nasm', (2,7))
         if nasm is None:
-            error('We need a NASM version of at least 2.7, try running schafer -D or install a newer version manually, for example using Mac Ports')
+            error('We need a NASM version of at least 2.7, try running bootstrap.py or install a newer version manually, for example using Mac Ports')
             exit()
         autoconf = check_version('autoconf', (2,69))
         if autoconf is None:
-            error('We need a autoconf version of at least 2.69, try running schafer -D or install a newer version manually, for example using Mac Ports')
+            error('We need a autoconf version of at least 2.69, try running bootstrap.py or install a newer version manually, for example using Mac Ports')
             exit()
         pkgconfig = check_version('pkg-config', (0,27))
         if pkgconfig is None:
-            error('We need a pkgconfig version of at least 2.69, try running schafer -D or install a newer version manually, for example using Mac Ports')
+            error('We need a pkgconfig version of at least 2.69, try running bootstrap.py or install a newer version manually, for example using Mac Ports')
             exit()
         automake = check_version('automake', (1,12))
         if automake is None:
-            error('We need a automake version of at least 2.69, try running schafer -D or install a newer version manually, for example using Mac Ports')
+            error('We need a automake version of at least 2.69, try running bootstrap.py or install a newer version manually, for example using Mac Ports')
             exit()
         # Try the Mac Ports path first
         port = check_tool('port')
