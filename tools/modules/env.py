@@ -2,7 +2,7 @@ from copy import deepcopy
 import os, platform
 from os.path import *
 from log import error, info
-from util import find_xcode, find_apple_sdk
+from util import find_xcode, find_apple_sdk, check_tool
 import multiprocessing
 from pypreprocessor import preprocessor
 
@@ -249,6 +249,7 @@ def prepare_arm_android_env(target, pp=None, openmp=False, api_level=10, gcc='4.
     apitarget = 'android-%d' % api_level
 
     env = deepcopy(os.environ)
+    system = platform.system().lower()
 
     # Check that the NDK and SDK exist
     if ANDROID_NDK == None:
@@ -258,7 +259,7 @@ def prepare_arm_android_env(target, pp=None, openmp=False, api_level=10, gcc='4.
         error('No Android SDK location provided (use command line parameters or environment variable ANDROID_SDK)')
         exit()
 
-    if not isdir(ANDROID_NDK) or not isfile(join(ANDROID_NDK, 'ndk-build')) or not isdir(join(ANDROID_NDK,"toolchains/arm-linux-androideabi-%s/prebuilt/%s-x86/bin" % (gcc, platform.system().lower()))):
+    if not isdir(ANDROID_NDK) or not isfile(join(ANDROID_NDK, 'ndk-build')) or not isdir(join(ANDROID_NDK,"toolchains/arm-linux-androideabi-%s/prebuilt/%s-x86/bin" % (gcc, system))):
         error('Can not locate Valid Android NDK at %s, install or update it' % (ANDROID_NDK,))
         exit()
     if ANDROID_SDK == None or not isdir(ANDROID_SDK) or  not isfile(join(ANDROID_SDK, 'tools', 'android')):
@@ -275,16 +276,19 @@ def prepare_arm_android_env(target, pp=None, openmp=False, api_level=10, gcc='4.
         exit()
     env['GCC_VERSION'] = gcc
 
-    if 'JAVA_HOME' not in os.environ:
-        env['JAVA_HOME'] = "/usr/lib/jvm/java-6-openjdk"
+    if check_tool('java', False) is None:
+        # The path we search on for Java is only useful on Ubuntu
+        # However, on OS X Java should be already easily accessible on the path
+        if 'JAVA_HOME' not in os.environ:
+            env['JAVA_HOME'] = "/usr/lib/jvm/java-6-openjdk"
 
-    if not isdir(env['JAVA_HOME']) or  not isfile(join(env['JAVA_HOME'], 'bin', 'java')):
-        env['JAVA_HOME'] = "/usr/lib/jvm/java-6-openjdk-amd64"
         if not isdir(env['JAVA_HOME']) or  not isfile(join(env['JAVA_HOME'], 'bin', 'java')):
-            error('Can not locate JAVA. Please set the JAVA_HOME environment variable accordingly' % (env['JAVA_HOME'],))
-            exit()
+            env['JAVA_HOME'] = "/usr/lib/jvm/java-6-openjdk-amd64"
+            if not isdir(env['JAVA_HOME']) or  not isfile(join(env['JAVA_HOME'], 'bin', 'java')):
+                error('Can not locate JAVA. Please set the JAVA_HOME environment variable accordingly' % (env['JAVA_HOME'],))
+                exit()
 
-    env['PATH'] = "%s/toolchains/arm-linux-androideabi-%s/prebuilt/linux-x86/bin/:%s:%s/tools:/usr/local/bin:/usr/bin:/bin:%s" % (ANDROID_NDK, gcc, ANDROID_NDK, ANDROID_SDK, '') #env['PATH'])
+    env['PATH'] = "%s/toolchains/arm-linux-androideabi-%s/prebuilt/%s-x86/bin/:%s:%s/tools:/usr/local/bin:/usr/bin:/bin:%s" % (ANDROID_NDK, gcc, system, ANDROID_NDK, ANDROID_SDK, env['PATH'])
     env['ARCH'] = "armeabi"
     env['SDK'] = ANDROID_SDK
     env['NDK'] = ANDROID_NDK
