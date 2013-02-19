@@ -99,7 +99,8 @@ def make(options, env, target, sources, cython_src, cfiles):
     # Update projects files in case something is outdated vs the Android SDK tools
     if isfile(join(platform_build, 'android_project', 'build.xml')):
         os.unlink(join(platform_build, 'android_project', 'build.xml'))
-    cmd = 'android update project -t %s -n %s -p %s' % (env['TARGET'], options.project, join(platform_build, 'android_project'))
+    android_tool = join(ANDROID_SDK, 'tools', 'android')
+    cmd = android_tool + ' update project -t %s -n %s -p %s' % (env['TARGET'], options.project, join(platform_build, 'android_project'))
     Popen(shlex.split(cmd)).communicate()
 
     # Build it
