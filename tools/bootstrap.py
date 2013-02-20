@@ -286,7 +286,7 @@ if __name__ == '__main__':
         cmd = PORT_CMD + 'selfupdate'
         Popen(shlex.split(cmd)).communicate()
         print 'Installing build dependencies using Mac Ports'
-        cmd = PORT_CMD + 'install mercurial git-core rsync nasm libtool autoconf automake pkgconfig'
+        cmd = PORT_CMD + 'install mercurial git-core rsync nasm libtool autoconf automake pkgconfig i386-mingw32-gcc'
         Popen(shlex.split(cmd)).communicate()
 
 

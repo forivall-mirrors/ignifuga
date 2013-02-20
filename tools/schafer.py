@@ -294,6 +294,12 @@ def prepare_ignifuga(platform, pp, options, srcdir=SOURCES['IGNIFUGA']):
         cmd = 'rsync -auqPm %s/Include/Rocket/ %s' % (SOURCES['ROCKET'], join(target.builds.IGNIFUGA, 'Rocket'))
         Popen(shlex.split(cmd), cwd = srcdir).communicate()
 
+        # Workaround for mingw32 compilation under OS X
+        processor, system, arch, distro_name, distro_version, distro_id = get_build_platform()
+        if system == 'Darwin' and (platform == 'intel_mingw32' or platform == 'intel_mingw64'):
+            cmd = 'patch -t -p1 -i %s' % (join(PATCHES_DIR, 'ElementAttributeProxy.cpp.i386-mingw32.diff'))
+            Popen(shlex.split(cmd), cwd=join(target.builds.IGNIFUGA, 'Rocket')).communicate()
+
         log("Preparing boost::python source code")
         cmd = 'rsync -auqPm %s/python/src/ %s' % (SOURCES['BOOST'], join(target.builds.IGNIFUGA, 'boost'))
         Popen(shlex.split(cmd), cwd = srcdir).communicate()

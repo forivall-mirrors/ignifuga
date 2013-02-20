@@ -66,8 +66,13 @@ def check_gnutools():
     return True
 
 def check_intel_mingw32_tools():
-    tools = ['i686-w64-mingw32-gcc', 'i686-w64-mingw32-g++', 'i686-w64-mingw32-ar', 'i686-w64-mingw32-ranlib', 'i686-w64-mingw32-strip', 'i686-w64-mingw32-ld', 'i686-w64-mingw32-as',
+    system = platform.system()
+    if system == 'Linux':
+        tools = ['i686-w64-mingw32-gcc', 'i686-w64-mingw32-g++', 'i686-w64-mingw32-ar', 'i686-w64-mingw32-ranlib', 'i686-w64-mingw32-strip', 'i686-w64-mingw32-ld', 'i686-w64-mingw32-as',
              'i686-w64-mingw32-nm', 'i686-w64-mingw32-dlltool', 'i686-w64-mingw32-objdump', 'i686-w64-mingw32-windres']
+    elif system == 'Darwin':
+        tools = ['i386-mingw32-gcc', 'i386-mingw32-g++', 'i386-mingw32-ar', 'i386-mingw32-ranlib', 'i386-mingw32-strip', 'i386-mingw32-ld', 'i386-mingw32-as',
+             'i386-mingw32-nm', 'i386-mingw32-dlltool', 'i386-mingw32-objdump', 'i386-mingw32-windres']
 
     for tool in tools:
         check_tool(tool)
@@ -330,7 +335,7 @@ def get_available_platforms():
             AVAILABLE_PLATFORMS = ['intel_linux32', 'intel_mingw32', 'arm_android', 'intel_android']
     elif system == 'Darwin':
         SED_CMD = 'sed -i "" '
-        AVAILABLE_PLATFORMS = ['osx', 'ios', 'arm_android', 'intel_android' ]
+        AVAILABLE_PLATFORMS = ['osx', 'ios', 'arm_android', 'intel_android', 'intel_mingw32' ]
 
     return AVAILABLE_PLATFORMS, SED_CMD
 

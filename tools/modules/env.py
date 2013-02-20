@@ -356,19 +356,35 @@ def prepare_intel_mingw32_env(target, pp=None, openmp=False):
     env['CFLAGS'] = ("" if not 'CFLAGS' in env else env['CFLAGS']) + '-I%s/include' % target.dist
     env['LDFLAGS'] = ("" if not 'LDFLAGS' in env else env['LDFLAGS']) + '-L%s/lib' % target.dist
     env['CXXFLAGS'] = env['CFLAGS']
-    env['CC'] = 'i686-w64-mingw32-gcc %s' % (env['CFLAGS'],)
-    env['CXX'] = 'i686-w64-mingw32-g++ %s' % (env['CXXFLAGS'],)
-    env['AR'] = "i686-w64-mingw32-ar"
-    env['RANLIB'] = "i686-w64-mingw32-ranlib"
-    env['STRIP'] = "i686-w64-mingw32-strip --strip-unneeded"
-    env['LD'] = "i686-w64-mingw32-ld"
-    env['AS'] = "i686-w64-mingw32-as"
-    env['NM'] = "i686-w64-mingw32-nm"
-    env['DLLTOOL'] = "i686-w64-mingw32-dlltool"
-    env['OBJDUMP'] = "i686-w64-mingw32-objdump"
-    env['RESCOMP'] = "i686-w64-mingw32-windres"
+    system = platform.system()
+    if system == 'Linux':
+        env['CC'] = 'i686-w64-mingw32-gcc %s' % (env['CFLAGS'],)
+        env['CXX'] = 'i686-w64-mingw32-g++ %s' % (env['CXXFLAGS'],)
+        env['AR'] = "i686-w64-mingw32-ar"
+        env['RANLIB'] = "i686-w64-mingw32-ranlib"
+        env['STRIP'] = "i686-w64-mingw32-strip --strip-unneeded"
+        env['LD'] = "i686-w64-mingw32-ld"
+        env['AS'] = "i686-w64-mingw32-as"
+        env['NM'] = "i686-w64-mingw32-nm"
+        env['DLLTOOL'] = "i686-w64-mingw32-dlltool"
+        env['OBJDUMP'] = "i686-w64-mingw32-objdump"
+        env['RESCOMP'] = "i686-w64-mingw32-windres"
+        env['HOST'] = '--host=i686-w64-mingw32'
+    elif system == 'Darwin':
+        env['CC'] = 'i386-mingw32-gcc %s' % (env['CFLAGS'],)
+        env['CXX'] = 'i386-mingw32-g++ %s' % (env['CXXFLAGS'],)
+        env['AR'] = "i386-mingw32-ar"
+        env['RANLIB'] = "i386-mingw32-ranlib"
+        env['STRIP'] = "i386-mingw32-strip --strip-unneeded"
+        env['LD'] = "i386-mingw32-ld"
+        env['AS'] = "i386-mingw32-as"
+        env['NM'] = "i386-mingw32-nm"
+        env['DLLTOOL'] = "i386-mingw32-dlltool"
+        env['OBJDUMP'] = "i386-mingw32-objdump"
+        env['RESCOMP'] = "i386-mingw32-windres"
+        env['HOST'] = '--host=i386-mingw32'
+
     env['MAKE'] = 'make V=0 -k -j%d HOSTPYTHON=%s HOSTPGEN=%s CROSS_COMPILE=mingw32msvc CROSS_COMPILE_TARGET=yes' % (multiprocessing.cpu_count(), HOSTPYTHON, HOSTPGEN)
-    env['HOST'] = '--host=i686-w64-mingw32'
     env['WITH_SYSROOT'] = ''
     return env, pp
 

@@ -1,0 +1,13 @@
+diff --git a/Core/Python/ElementAttributeProxy.cpp b/Core/Python/ElementAttributeProxy.cpp
+index 7372d22..0cd264a 100644
+--- a/Core/Python/ElementAttributeProxy.cpp
++++ b/Core/Python/ElementAttributeProxy.cpp
+@@ -46,7 +46,7 @@ ElementAttributeProxy::~ElementAttributeProxy()
+ void ElementAttributeProxy::InitialisePythonInterface()
+ {
+ 	python::class_<AttributeProxy>("AttributeProxy", python::no_init)
+-		.def_readonly("name", &AttributeProxy::GetName)
++//		.def_readonly("name", &AttributeProxy::GetName)
+ 		.add_property("value", &AttributeProxy::GetValue)
+ 		;
+ 
