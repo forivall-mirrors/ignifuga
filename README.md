@@ -29,7 +29,9 @@ Features
     * Music (with ogg support)
 * libRocket integration, build your GUI using HTML+CSS!
 * Remote Python Console via RFoo integration, connect remotely to a running instance of Ignifuga and experiment with your game interactively in real time.
+* Remote Websockets Console: Alternatively, you can use the Remote Console with regular sockets (i.e. via Telnet) or with websockets (using javascript from a web browser).
 * pQuery, our own version of jQuery for Python, that works on Ignifuga Scenes/Entities/Components and Rocket RML Elements using the exact same syntax.
+* Remote Screen, Provides a 1:1 live MJPEG stream of the game for screencast purposes,  browser embedding, etc.
 * Despite compiling everything to C and then to machine code, you can still take advantage of Python’s dynamic nature and develop using almost regular Python in your dev system, then compile everything into a neat bundle for distribution
 * Heavily data driven, almost everything can be done from a json definition file
 * Hot (on the fly, pun intended) reloading of assets, this includes images and scene definition files.
@@ -47,9 +49,4 @@ and the Linux project has a penguin in their logo, so don’t come here judging 
 Where should I begin?
 =====================
 
-[Check out our Getting Started guide](http://ignifuga.org/gettingstarted)
-
-The demo project is outdated and it doesn't make justice to the newer features, but it should do in the meantime,
-so [check it out](https://bitbucket.org/gabomdq/ignifuga-demo) (in the meantime to what you ask? Good question!)
-
-
+[Check out our Getting Started guide](http://ignifuga.org/#getthecode)
