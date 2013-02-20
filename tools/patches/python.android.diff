@@ -1,22 +1,380 @@
-Index: Python/pythonrun.c
-===================================================================
---- Python/pythonrun.c	(revisión: 29)
-+++ Python/pythonrun.c	(copia de trabajo)
-@@ -158,6 +158,10 @@
-         return;
-     initialized = 1;
+diff -r 38897e3d21f0 Lib/ctypes/__init__.py
+--- Lib/ctypes/__init__.py	Tue Feb 19 13:31:31 2013 -0800
++++ Lib/ctypes/__init__.py	Tue Feb 19 16:25:30 2013 -0800
+@@ -6,6 +6,13 @@
+ import os as _os, sys as _sys
  
-+    // Redirect stderr, stdout
-+    freopen("/sdcard/python.stdout.log", "w", stdout);
-+    freopen("/sdcard/python.stderr.log", "w", stderr);
+ __version__ = "1.1.0"
++import _ctypes
++odlopen = getattr(_ctypes, 'dlopen')
++def __dlopen(name, flag=_ctypes.RTLD_GLOBAL|_ctypes.RTLD_LOCAL):
++  if name:
++    return odlopen(name, flag)
++  return 0L
++_sys.modules["_ctypes"].dlopen=__dlopen
+ 
+ from _ctypes import Union, Structure, Array
+ from _ctypes import _Pointer
+@@ -438,7 +445,7 @@
+ elif _sys.platform == "cygwin":
+     pythonapi = PyDLL("libpython%d.%d.dll" % _sys.version_info[:2])
+ else:
+-    pythonapi = PyDLL(None)
++    pythonapi = PyDLL("libpython%d.%d.so" % _sys.version_info[:2])
+ 
+ 
+ if _os.name in ("nt", "ce"):
+diff -r 38897e3d21f0 Makefile.pre.in
+--- Makefile.pre.in	Tue Feb 19 13:31:31 2013 -0800
++++ Makefile.pre.in	Tue Feb 19 16:25:30 2013 -0800
+@@ -182,6 +182,7 @@
+ 
+ PYTHON=		python$(EXE)
+ BUILDPYTHON=	python$(BUILDEXE)
++HOSTPYTHON=	./$(BUILDPYTHON)
+ 
+ # The task to run while instrument when building the profile-opt target
+ PROFILE_TASK=	$(srcdir)/Tools/pybench/pybench.py -n 2 --with-gc --with-syscheck
+@@ -407,8 +408,8 @@
+ # Build the shared modules
+ sharedmods: $(BUILDPYTHON)
+ 	@case $$MAKEFLAGS in \
+-	*s*) $(RUNSHARED) CC='$(CC)' LDSHARED='$(BLDSHARED)' OPT='$(OPT)' ./$(BUILDPYTHON) -E $(srcdir)/setup.py -q build;; \
+-	*) $(RUNSHARED) CC='$(CC)' LDSHARED='$(BLDSHARED)' OPT='$(OPT)' ./$(BUILDPYTHON) -E $(srcdir)/setup.py build;; \
++	*s*) $(RUNSHARED) CC='$(CC)' LDSHARED='$(BLDSHARED)' OPT='$(OPT)'  $(HOSTPYTHON) -E $(srcdir)/setup.py -q build;; \
++	*) $(RUNSHARED) CC='$(CC)' LDSHARED='$(BLDSHARED)' OPT='$(OPT)'  $(HOSTPYTHON) -E $(srcdir)/setup.py build;; \
+ 	esac
+ 
+ # Build static library
+@@ -540,9 +541,9 @@
+ 
+ # Use a stamp file to prevent make -j invoking pgen twice
+ $(GRAMMAR_H) $(GRAMMAR_C): Parser/pgen.stamp
+-Parser/pgen.stamp: $(PGEN) $(GRAMMAR_INPUT)
++Parser/pgen.stamp: $(HOSTPGEN) $(GRAMMAR_INPUT)
+ 		-@$(INSTALL) -d Include
+-		$(PGEN) $(GRAMMAR_INPUT) $(GRAMMAR_H) $(GRAMMAR_C)
++		$(HOSTPGEN) $(GRAMMAR_INPUT) $(GRAMMAR_H) $(GRAMMAR_C)
+ 		-touch Parser/pgen.stamp
+ 
+ $(PGEN):	$(PGENOBJS)
+@@ -926,25 +927,25 @@
+ 	done
+ 	$(INSTALL_DATA) $(srcdir)/LICENSE $(DESTDIR)$(LIBDEST)/LICENSE.txt
+ 	PYTHONPATH=$(DESTDIR)$(LIBDEST)  $(RUNSHARED) \
+-		./$(BUILDPYTHON) -Wi -tt $(DESTDIR)$(LIBDEST)/compileall.py \
++		$(HOSTPYTHON) -Wi -tt $(DESTDIR)$(LIBDEST)/compileall.py \
+ 		-d $(LIBDEST) -f \
+ 		-x 'bad_coding|badsyntax|site-packages|lib2to3/tests/data' \
+ 		$(DESTDIR)$(LIBDEST)
+ 	PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
+-		./$(BUILDPYTHON) -Wi -tt -O $(DESTDIR)$(LIBDEST)/compileall.py \
++		$(HOSTPYTHON) -Wi -tt -O $(DESTDIR)$(LIBDEST)/compileall.py \
+ 		-d $(LIBDEST) -f \
+ 		-x 'bad_coding|badsyntax|site-packages|lib2to3/tests/data' \
+ 		$(DESTDIR)$(LIBDEST)
+ 	-PYTHONPATH=$(DESTDIR)$(LIBDEST)  $(RUNSHARED) \
+-		./$(BUILDPYTHON) -Wi -t $(DESTDIR)$(LIBDEST)/compileall.py \
++		$(HOSTPYTHON) -Wi -t $(DESTDIR)$(LIBDEST)/compileall.py \
+ 		-d $(LIBDEST)/site-packages -f \
+ 		-x badsyntax $(DESTDIR)$(LIBDEST)/site-packages
+ 	-PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
+-		./$(BUILDPYTHON) -Wi -t -O $(DESTDIR)$(LIBDEST)/compileall.py \
++		$(HOSTPYTHON) -Wi -t -O $(DESTDIR)$(LIBDEST)/compileall.py \
+ 		-d $(LIBDEST)/site-packages -f \
+ 		-x badsyntax $(DESTDIR)$(LIBDEST)/site-packages
+ 	-PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
+-		./$(BUILDPYTHON) -Wi -t -c "import lib2to3.pygram, lib2to3.patcomp;lib2to3.patcomp.PatternCompiler()"
++		$(HOSTPYTHON) -Wi -t -c "import lib2to3.pygram, lib2to3.patcomp;lib2to3.patcomp.PatternCompiler()"
+ 
+ # Create the PLATDIR source directory, if one wasn't distributed..
+ $(srcdir)/Lib/$(PLATDIR):
+@@ -1049,7 +1050,7 @@
+ # Install the dynamically loadable modules
+ # This goes into $(exec_prefix)
+ sharedinstall: sharedmods
+-	$(RUNSHARED) ./$(BUILDPYTHON) -E $(srcdir)/setup.py install \
++	$(RUNSHARED) $(HOSTPYTHON) -E $(srcdir)/setup.py install \
+ 	   	--prefix=$(prefix) \
+ 		--install-scripts=$(BINDIR) \
+ 		--install-platlib=$(DESTSHARED) \
+diff -r 38897e3d21f0 Modules/_localemodule.c
+--- Modules/_localemodule.c	Tue Feb 19 13:31:31 2013 -0800
++++ Modules/_localemodule.c	Tue Feb 19 16:25:30 2013 -0800
+@@ -205,6 +205,7 @@
+ static PyObject*
+ PyLocale_localeconv(PyObject* self)
+ {
++#ifndef ANDROID
+     PyObject* result;
+     struct lconv *l;
+     PyObject *x;
+@@ -265,6 +266,7 @@
+   failed:
+     Py_XDECREF(result);
+     Py_XDECREF(x);
++#endif
+     return NULL;
+ }
+ 
+diff -r 38897e3d21f0 Modules/posixmodule.c
+--- Modules/posixmodule.c	Tue Feb 19 13:31:31 2013 -0800
++++ Modules/posixmodule.c	Tue Feb 19 16:25:30 2013 -0800
+@@ -155,6 +155,9 @@
+ #define HAVE_SYSTEM     1
+ #define HAVE_WAIT       1
+ #define HAVE_TTYNAME    1
++#ifdef ANDROID
++    #undef HAVE_TTYNAME
++#endif
+ #endif  /* PYOS_OS2 && PYCC_GCC && __VMS */
+ #endif  /* _MSC_VER */
+ #endif  /* __BORLANDC__ */
+@@ -3787,7 +3790,7 @@
+     slave_fd = open(slave_name, O_RDWR | O_NOCTTY); /* open slave */
+     if (slave_fd < 0)
+         return posix_error();
+-#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC)
++#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC) && !defined(ANDROID)
+     ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
+     ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
+ #ifndef __hpux
+diff -r 38897e3d21f0 Modules/pwdmodule.c
+--- Modules/pwdmodule.c	Tue Feb 19 13:31:31 2013 -0800
++++ Modules/pwdmodule.c	Tue Feb 19 16:25:30 2013 -0800
+@@ -68,14 +68,14 @@
+ #define SETS(i,val) sets(v, i, val)
+ 
+     SETS(setIndex++, p->pw_name);
+-#ifdef __VMS
++#if defined(__VMS) || defined(ANDROID)
+     SETS(setIndex++, "");
+ #else
+     SETS(setIndex++, p->pw_passwd);
+ #endif
+     SETI(setIndex++, p->pw_uid);
+     SETI(setIndex++, p->pw_gid);
+-#ifdef __VMS
++#if defined(__VMS) || defined(ANDROID)
+     SETS(setIndex++, "");
+ #else
+     SETS(setIndex++, p->pw_gecos);
+diff -r 38897e3d21f0 Modules/socketmodule.c
+--- Modules/socketmodule.c	Tue Feb 19 13:31:31 2013 -0800
++++ Modules/socketmodule.c	Tue Feb 19 16:25:30 2013 -0800
+@@ -3474,7 +3474,7 @@
+         return NULL;
+     }
+     Py_BEGIN_ALLOW_THREADS
+-#ifdef HAVE_GETHOSTBYNAME_R
++#if 0 //#ifdef HAVE_GETHOSTBYNAME_R
+ #if   defined(HAVE_GETHOSTBYNAME_R_6_ARG)
+     result = gethostbyaddr_r(ap, al, af,
+         &hp_allocated, buf, buf_len,
+diff -r 38897e3d21f0 Modules/termios.c
+--- Modules/termios.c	Tue Feb 19 13:31:31 2013 -0800
++++ Modules/termios.c	Tue Feb 19 16:25:30 2013 -0800
+@@ -227,6 +227,7 @@
+     return Py_None;
+ }
+ 
++#ifndef ANDROID
+ PyDoc_STRVAR(termios_tcdrain__doc__,
+ "tcdrain(fd) -> None\n\
+ \n\
+@@ -246,6 +247,7 @@
+     Py_INCREF(Py_None);
+     return Py_None;
+ }
++#endif
+ 
+ PyDoc_STRVAR(termios_tcflush__doc__,
+ "tcflush(fd, queue) -> None\n\
+@@ -301,8 +303,10 @@
+      METH_VARARGS, termios_tcsetattr__doc__},
+     {"tcsendbreak", termios_tcsendbreak,
+      METH_VARARGS, termios_tcsendbreak__doc__},
++#ifndef ANDROID
+     {"tcdrain", termios_tcdrain,
+      METH_VARARGS, termios_tcdrain__doc__},
++#endif
+     {"tcflush", termios_tcflush,
+      METH_VARARGS, termios_tcflush__doc__},
+     {"tcflow", termios_tcflow,
+diff -r 38897e3d21f0 Objects/longobject.c
+--- Objects/longobject.c	Tue Feb 19 13:31:31 2013 -0800
++++ Objects/longobject.c	Tue Feb 19 16:25:30 2013 -0800
+@@ -813,13 +813,18 @@
+     return (void *)x;
+ }
+ 
++#ifdef ANDROID
++    #define IS_LITTLE_ENDIAN (int)*(unsigned char*)&one
++#endif
 +
-     if ((p = Py_GETENV("PYTHONDEBUG")) && *p != '\0')
-         Py_DebugFlag = add_flag(Py_DebugFlag, p);
-     if ((p = Py_GETENV("PYTHONVERBOSE")) && *p != '\0')
-Index: Python/pystrtod.c
-===================================================================
---- Python/pystrtod.c	(revisión: 29)
-+++ Python/pystrtod.c	(copia de trabajo)
+ #ifdef HAVE_LONG_LONG
+ 
+ /* Initial PY_LONG_LONG support by Chris Herborth (chrish@qnx.com), later
+  * rewritten to use the newer PyLong_{As,From}ByteArray API.
+  */
+-
+-#define IS_LITTLE_ENDIAN (int)*(unsigned char*)&one
++#ifndef ANDROID
++    #define IS_LITTLE_ENDIAN (int)*(unsigned char*)&one
++#endif
+ #define PY_ABS_LLONG_MIN (0-(unsigned PY_LONG_LONG)PY_LLONG_MIN)
+ 
+ /* Create a new long int object from a C PY_LONG_LONG int. */
+@@ -891,7 +896,7 @@
+     }
+     return (PyObject *)v;
+ }
+-
++#ifndef ANDROID
+ /* Create a new long int object from a C Py_ssize_t. */
+ 
+ PyObject *
+@@ -913,6 +918,7 @@
+     return _PyLong_FromByteArray((unsigned char *)&bytes,
+                                  SIZEOF_SIZE_T, IS_LITTLE_ENDIAN, 0);
+ }
++#endif
+ 
+ /* Get a C PY_LONG_LONG int from a long int object.
+    Return -1 and set an error if overflow occurs. */
+@@ -1121,6 +1127,31 @@
+     }
+     return res;
+ }
++#ifdef ANDROID
++/* Create a new long int object from a C Py_ssize_t. */
++
++PyObject *
++PyLong_FromSsize_t(Py_ssize_t ival)
++{
++	Py_ssize_t bytes = ival;
++	int one = 1;
++	return _PyLong_FromByteArray(
++			(unsigned char *)&bytes,
++			SIZEOF_SIZE_T, IS_LITTLE_ENDIAN, 1);
++}
++
++/* Create a new long int object from a C size_t. */
++
++PyObject *
++PyLong_FromSize_t(size_t ival)
++{
++	size_t bytes = ival;
++	int one = 1;
++	return _PyLong_FromByteArray(
++			(unsigned char *)&bytes,
++			SIZEOF_SIZE_T, IS_LITTLE_ENDIAN, 0);
++}
++#endif
+ 
+ #undef IS_LITTLE_ENDIAN
+ 
+diff -r 38897e3d21f0 Objects/stringlib/formatter.h
+--- Objects/stringlib/formatter.h	Tue Feb 19 13:31:31 2013 -0800
++++ Objects/stringlib/formatter.h	Tue Feb 19 16:25:30 2013 -0800
+@@ -639,13 +639,7 @@
+ get_locale_info(int type, LocaleInfo *locale_info)
+ {
+     switch (type) {
+-    case LT_CURRENT_LOCALE: {
+-        struct lconv *locale_data = localeconv();
+-        locale_info->decimal_point = locale_data->decimal_point;
+-        locale_info->thousands_sep = locale_data->thousands_sep;
+-        locale_info->grouping = locale_data->grouping;
+-        break;
+-    }
++    case LT_CURRENT_LOCALE:
+     case LT_DEFAULT_LOCALE:
+         locale_info->decimal_point = ".";
+         locale_info->thousands_sep = ",";
+diff -r 38897e3d21f0 Objects/stringlib/localeutil.h
+--- Objects/stringlib/localeutil.h	Tue Feb 19 13:31:31 2013 -0800
++++ Objects/stringlib/localeutil.h	Tue Feb 19 16:25:30 2013 -0800
+@@ -202,10 +202,8 @@
+                                   Py_ssize_t n_digits,
+                                   Py_ssize_t min_width)
+ {
+-        struct lconv *locale_data = localeconv();
+-        const char *grouping = locale_data->grouping;
+-        const char *thousands_sep = locale_data->thousands_sep;
+-
++        const char *grouping = 3;
++        const char *thousands_sep = ",";
+         return _Py_InsertThousandsGrouping(buffer, n_buffer, digits, n_digits,
+                                            min_width, grouping, thousands_sep);
+ }
+diff -r 38897e3d21f0 Python/dynload_win.c
+--- Python/dynload_win.c	Tue Feb 19 13:31:31 2013 -0800
++++ Python/dynload_win.c	Tue Feb 19 16:25:30 2013 -0800
+@@ -28,20 +28,6 @@
+ /* Case insensitive string compare, to avoid any dependencies on particular
+    C RTL implementations */
+ 
+-static int strcasecmp (char *string1, char *string2)
+-{
+-    int first, second;
+-
+-    do {
+-        first  = tolower(*string1);
+-        second = tolower(*string2);
+-        string1++;
+-        string2++;
+-    } while (first && first == second);
+-
+-    return (first - second);
+-}
+-
+ 
+ /* Function to return the name of the "python" DLL that the supplied module
+    directly imports.  Looks through the list of imported modules and
+diff -r 38897e3d21f0 Python/getplatform.c
+--- Python/getplatform.c	Tue Feb 19 13:31:31 2013 -0800
++++ Python/getplatform.c	Tue Feb 19 16:25:30 2013 -0800
+@@ -1,5 +1,30 @@
++#include "Python.h"
+ 
+-#include "Python.h"
++#ifdef ANDROID
++#include <sys/utsname.h>
++#include <string.h>
++
++char _PLATFORM[20]={0}; // taken as base linux-armv7l-2.6
++
++const char *
++Py_GetPlatform(void)
++{
++    if (_PLATFORM[0]!=0)
++	return _PLATFORM;
++
++    struct utsname u;
++    int i;
++    if ( uname(&u) < 0 )
++	return "unknown";
++
++    strcat (_PLATFORM, u.sysname);
++    strcat (_PLATFORM, "-");
++    strcat (_PLATFORM, u.machine);
++    for (i=0; _PLATFORM[i]; i++)
++	_PLATFORM[i]=tolower(_PLATFORM[i]);
++    return _PLATFORM;
++}
++#else
+ 
+ #ifndef PLATFORM
+ #define PLATFORM "unknown"
+@@ -10,3 +35,4 @@
+ {
+ 	return PLATFORM;
+ }
++#endif
+diff -r 38897e3d21f0 Python/pystrtod.c
+--- Python/pystrtod.c	Tue Feb 19 13:31:31 2013 -0800
++++ Python/pystrtod.c	Tue Feb 19 16:25:30 2013 -0800
 @@ -126,7 +126,6 @@
  {
      char *fail_pos;
@@ -45,79 +403,134 @@ Index: Python/pystrtod.c
  
      if (decimal_point[0] != '.' || decimal_point[1] != 0) {
          size_t decimal_point_len = strlen(decimal_point);
-Index: Python/dynload_win.c
-===================================================================
---- Python/dynload_win.c	(revisión: 29)
-+++ Python/dynload_win.c	(copia de trabajo)
-@@ -28,21 +28,7 @@
- /* Case insensitive string compare, to avoid any dependencies on particular
-    C RTL implementations */
+diff -r 38897e3d21f0 Python/pythonrun.c
+--- Python/pythonrun.c	Tue Feb 19 13:31:31 2013 -0800
++++ Python/pythonrun.c	Tue Feb 19 16:25:30 2013 -0800
+@@ -158,6 +158,10 @@
+         return;
+     initialized = 1;
  
--static int strcasecmp (char *string1, char *string2)
--{
--    int first, second;
++    // Redirect stderr, stdout
++    freopen("/sdcard/python.stdout.log", "w", stdout);
++    freopen("/sdcard/python.stderr.log", "w", stderr);
++
+     if ((p = Py_GETENV("PYTHONDEBUG")) && *p != '\0')
+         Py_DebugFlag = add_flag(Py_DebugFlag, p);
+     if ((p = Py_GETENV("PYTHONVERBOSE")) && *p != '\0')
+diff -r 38897e3d21f0 configure
+--- configure	Tue Feb 19 13:31:31 2013 -0800
++++ configure	Tue Feb 19 16:25:30 2013 -0800
+@@ -2985,31 +2985,10 @@
+ ##
+ # Set name for machine-dependent library files
  
--    do {
--        first  = tolower(*string1);
--        second = tolower(*string2);
--        string1++;
--        string2++;
--    } while (first && first == second);
+-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking MACHDEP" >&5
+-$as_echo_n "checking MACHDEP... " >&6; }
+-if test -z "$MACHDEP"
+-then
+-	ac_sys_system=`uname -s`
+-	if test "$ac_sys_system" = "AIX" \
+-	-o "$ac_sys_system" = "UnixWare" -o "$ac_sys_system" = "OpenUNIX"; then
+-		ac_sys_release=`uname -v`
+-	else
+-		ac_sys_release=`uname -r`
+-	fi
+-	ac_md_system=`echo $ac_sys_system |
+-			   tr -d '/ ' | tr '[A-Z]' '[a-z]'`
+-	ac_md_release=`echo $ac_sys_release |
+-			   tr -d '/ ' | sed 's/^[A-Z]\.//' | sed 's/\..*//'`
+-	MACHDEP="$ac_md_system$ac_md_release"
 -
--    return (first - second);
--}
--
--
- /* Function to return the name of the "python" DLL that the supplied module
-    directly imports.  Looks through the list of imported modules and
-    returns the first entry that starts with "python" (case sensitive) and
-Index: Python/getplatform.c
-===================================================================
---- Python/getplatform.c	(revisión: 29)
-+++ Python/getplatform.c	(copia de trabajo)
-@@ -1,6 +1,31 @@
--
- #include "Python.h"
+-	case $MACHDEP in
+-	cygwin*) MACHDEP="cygwin";;
+-	darwin*) MACHDEP="darwin";;
+-	atheos*) MACHDEP="atheos";;
+-        irix646) MACHDEP="irix6";;
+-	'')	MACHDEP="unknown";;
+-	esac
+-fi
++# For Android, hardcode system to Linux
++ac_sys_system="Linux"
++ac_sys_release="2"
++MACHDEP="linux"
  
-+#ifdef ANDROID
-+#include <sys/utsname.h>
-+#include <string.h>
-+
-+char _PLATFORM[20]={0}; // taken as base linux-armv7l-2.6
-+
-+const char *
-+Py_GetPlatform(void)
-+{
-+    if (_PLATFORM[0]!=0)
-+	return _PLATFORM;
-+
-+    struct utsname u;
-+    int i;
-+    if ( uname(&u) < 0 )
-+	return "unknown";
-+
-+    strcat (_PLATFORM, u.sysname);
-+    strcat (_PLATFORM, "-");
-+    strcat (_PLATFORM, u.machine);
-+    for (i=0; _PLATFORM[i]; i++)
-+	_PLATFORM[i]=tolower(_PLATFORM[i]);
-+    return _PLATFORM;
-+}
-+#else
-+
- #ifndef PLATFORM
- #define PLATFORM "unknown"
- #endif
-@@ -10,3 +35,4 @@
- {
- 	return PLATFORM;
- }
-+#endif
-Index: configure
-===================================================================
---- configure	(revisión: 29)
-+++ configure	(copia de trabajo)
-@@ -13673,7 +13673,7 @@
+ # Some systems cannot stand _XOPEN_SOURCE being defined at all; they
+ # disable features if it is defined, without any means to access these
+@@ -4960,11 +4939,6 @@
+ 	  BLDLIBRARY='-L. -lpython$(VERSION)'
+ 	  RUNSHARED=DLL_PATH=`pwd`:${DLL_PATH:-/atheos/sys/libs:/atheos/autolnk/lib}
+ 	  ;;
+-    Darwin*)
+-    	LDLIBRARY='libpython$(VERSION).dylib'
+-	BLDLIBRARY='-L. -lpython$(VERSION)'
+-	RUNSHARED='DYLD_LIBRARY_PATH=`pwd`:${DYLD_LIBRARY_PATH}'
+-	;;
+     AIX*)
+ 	LDLIBRARY='libpython$(VERSION).so'
+ 	RUNSHARED=LIBPATH=`pwd`:${LIBPATH}
+@@ -7625,61 +7599,6 @@
+ 			LDSHARED='ld -b'
+ 		fi ;;
+ 	OSF*) LDSHARED="ld -shared -expect_unresolved \"*\"";;
+-	Darwin/1.3*)
+-		LDSHARED='$(CC) -bundle'
+-		LDCXXSHARED='$(CXX) -bundle'
+-		if test "$enable_framework" ; then
+-			# Link against the framework. All externals should be defined.
+-			BLDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			LDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			LDCXXSHARED="$LDCXXSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-		else
+-			# No framework. Ignore undefined symbols, assuming they come from Python
+-			LDSHARED="$LDSHARED -undefined suppress"
+-			LDCXXSHARED="$LDCXXSHARED -undefined suppress"
+-		fi ;;
+-	Darwin/1.4*|Darwin/5.*|Darwin/6.*)
+-		LDSHARED='$(CC) -bundle'
+-		LDCXXSHARED='$(CXX) -bundle'
+-		if test "$enable_framework" ; then
+-			# Link against the framework. All externals should be defined.
+-			BLDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			LDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			LDCXXSHARED="$LDCXXSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-		else
+-			# No framework, use the Python app as bundle-loader
+-			BLDSHARED="$LDSHARED "'-bundle_loader $(BUILDPYTHON)'
+-			LDSHARED="$LDSHARED "'-bundle_loader $(BINDIR)/python$(VERSION)$(EXE)'
+-			LDCXXSHARED="$LDCXXSHARED "'-bundle_loader $(BINDIR)/python$(VERSION)$(EXE)'
+-		fi ;;
+-	Darwin/*)
+-		# Use -undefined dynamic_lookup whenever possible (10.3 and later).
+-		# This allows an extension to be used in any Python
+-
+-		if test ${MACOSX_DEPLOYMENT_TARGET} '>' 10.2
+-		then
+-			if test "${enable_universalsdk}"; then
+-				LDFLAGS="${UNIVERSAL_ARCH_FLAGS} -isysroot ${UNIVERSALSDK} ${LDFLAGS}"
+-			fi
+-			LDSHARED='$(CC) -bundle -undefined dynamic_lookup'
+-			LDCXXSHARED='$(CXX) -bundle -undefined dynamic_lookup'
+-			BLDSHARED="$LDSHARED"
+-		else
+-			LDSHARED='$(CC) -bundle'
+-			LDCXXSHARED='$(CXX) -bundle'
+-			if test "$enable_framework" ; then
+-				# Link against the framework. All externals should be defined.
+-				BLDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-				LDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-				LDCXXSHARED="$LDCXXSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			else
+-				# No framework, use the Python app as bundle-loader
+-				BLDSHARED="$LDSHARED "'-bundle_loader $(BUILDPYTHON)'
+-				LDSHARED="$LDSHARED "'-bundle_loader $(BINDIR)/python$(VERSION)$(EXE)'
+-				LDCXXSHARED="$LDCXXSHARED "'-bundle_loader $(BINDIR)/python$(VERSION)$(EXE)'
+-			fi
+-		fi
+-		;;
+ 	Linux*|GNU*|QNX*)
+ 		LDSHARED='$(CC) -shared'
+ 		LDCXXSHARED='$(CXX) -shared';;
+@@ -13673,7 +13592,7 @@
    $as_echo_n "(cached) " >&6
  else
    if test "$cross_compiling" = yes; then :
@@ -126,10 +539,16 @@ Index: configure
  else
    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
  /* end confdefs.h.  */
-@@ -13738,15 +13738,15 @@
+@@ -13732,21 +13651,15 @@
+ 
  fi
  
- 
+-if test $ac_sys_system = Darwin
+-then
+-	LIBS="$LIBS -framework CoreFoundation"
+-fi
+-
+-
 -{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for %zd printf() format support" >&5
 -$as_echo_n "checking for %zd printf() format support... " >&6; }
 -if ${ac_cv_have_size_t_format+:} false; then :
@@ -137,6 +556,8 @@ Index: configure
 -else
 -  if test "$cross_compiling" = yes; then :
 -  ac_cv_have_size_t_format="cross -- assuming yes"
+-
+-else
 +#{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for %zd printf() format support" >&5
 +#$as_echo_n "checking for %zd printf() format support... " >&6; }
 +#if ${ac_cv_have_size_t_format+:} false; then :
@@ -144,36 +565,161 @@ Index: configure
 +#else
 +#  if test "$cross_compiling" = yes; then :
 +#  ac_cv_have_size_t_format="cross -- assuming yes"
- 
--else
++
 +#else
    cat confdefs.h - <<_ACEOF >conftest.$ac_ext
  /* end confdefs.h.  */
  
-@@ -13793,17 +13793,9 @@
+@@ -13793,16 +13706,8 @@
  fi
  rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
    conftest.$ac_objext conftest.beam conftest.$ac_ext
 -fi
-+#fi
- 
+-
 -fi
 -{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_have_size_t_format" >&5
 -$as_echo "$ac_cv_have_size_t_format" >&6; }
 -if test "$ac_cv_have_size_t_format" != no ; then
- 
+-
 -$as_echo "#define PY_FORMAT_SIZE_T \"z\"" >>confdefs.h
 -
 -fi
--
++#fi
++
+ 
  ac_fn_c_check_type "$LINENO" "socklen_t" "ac_cv_type_socklen_t" "
  #ifdef HAVE_SYS_TYPES_H
- #include <sys/types.h>
-Index: configure.in
-===================================================================
---- configure.in	(revisión: 29)
-+++ configure.in	(copia de trabajo)
-@@ -4171,106 +4171,45 @@
+diff -r 38897e3d21f0 configure.in
+--- configure.in	Tue Feb 19 13:31:31 2013 -0800
++++ configure.in	Tue Feb 19 16:25:30 2013 -0800
+@@ -270,36 +270,11 @@
+ AC_SUBST(FRAMEWORKUNIXTOOLSPREFIX)
+ AC_SUBST(FRAMEWORKINSTALLAPPSPREFIX)
+ 
+-##AC_ARG_WITH(dyld,
+-##            AS_HELP_STRING([--with-dyld],
+-##                           [Use (OpenStep|Rhapsody) dynamic linker]))
+-##
+-# Set name for machine-dependent library files
+-AC_SUBST(MACHDEP)
+-AC_MSG_CHECKING(MACHDEP)
+-if test -z "$MACHDEP"
+-then
+-	ac_sys_system=`uname -s`
+-	if test "$ac_sys_system" = "AIX" \
+-	-o "$ac_sys_system" = "UnixWare" -o "$ac_sys_system" = "OpenUNIX"; then
+-		ac_sys_release=`uname -v`
+-	else
+-		ac_sys_release=`uname -r`
+-	fi
+-	ac_md_system=`echo $ac_sys_system |
+-			   tr -d '[/ ]' | tr '[[A-Z]]' '[[a-z]]'`
+-	ac_md_release=`echo $ac_sys_release |
+-			   tr -d '[/ ]' | sed 's/^[[A-Z]]\.//' | sed 's/\..*//'`
+-	MACHDEP="$ac_md_system$ac_md_release"
+-
+-	case $MACHDEP in
+-	cygwin*) MACHDEP="cygwin";;
+-	darwin*) MACHDEP="darwin";;
+-	atheos*) MACHDEP="atheos";;
+-        irix646) MACHDEP="irix6";;
+-	'')	MACHDEP="unknown";;
+-	esac
+-fi
++# For Android, hardcode system to Linux
++ac_sys_system="Linux"
++ac_sys_release="2"
++MACHDEP="linux"
++
+ 	
+ # Some systems cannot stand _XOPEN_SOURCE being defined at all; they
+ # disable features if it is defined, without any means to access these
+@@ -778,7 +753,7 @@
+ 	  RUNSHARED=LD_LIBRARY_PATH=`pwd`:${LD_LIBRARY_PATH}
+ 	  INSTSONAME="$LDLIBRARY".$SOVERSION
+           ;;
+-    Linux*|GNU*|NetBSD*|FreeBSD*|DragonFly*)
++    Linux*|GNU*|NetBSD*|FreeBSD*|DragonFly*|Darwin*)
+ 	  LDLIBRARY='libpython$(VERSION).so'
+ 	  BLDLIBRARY='-L. -lpython$(VERSION)'
+ 	  RUNSHARED=LD_LIBRARY_PATH=`pwd`:${LD_LIBRARY_PATH}
+@@ -811,11 +786,6 @@
+ 	  BLDLIBRARY='-L. -lpython$(VERSION)'
+ 	  RUNSHARED=DLL_PATH=`pwd`:${DLL_PATH:-/atheos/sys/libs:/atheos/autolnk/lib}
+ 	  ;;
+-    Darwin*)
+-    	LDLIBRARY='libpython$(VERSION).dylib'
+-	BLDLIBRARY='-L. -lpython$(VERSION)'
+-	RUNSHARED='DYLD_LIBRARY_PATH=`pwd`:${DYLD_LIBRARY_PATH}'
+-	;;
+     AIX*)
+ 	LDLIBRARY='libpython$(VERSION).so'
+ 	RUNSHARED=LIBPATH=`pwd`:${LIBPATH}
+@@ -1803,62 +1773,7 @@
+ 			LDSHARED='ld -b'
+ 		fi ;;
+ 	OSF*) LDSHARED="ld -shared -expect_unresolved \"*\"";;
+-	Darwin/1.3*)
+-		LDSHARED='$(CC) -bundle'
+-		LDCXXSHARED='$(CXX) -bundle'
+-		if test "$enable_framework" ; then
+-			# Link against the framework. All externals should be defined.
+-			BLDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			LDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			LDCXXSHARED="$LDCXXSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-		else
+-			# No framework. Ignore undefined symbols, assuming they come from Python
+-			LDSHARED="$LDSHARED -undefined suppress"
+-			LDCXXSHARED="$LDCXXSHARED -undefined suppress"
+-		fi ;;
+-	Darwin/1.4*|Darwin/5.*|Darwin/6.*)
+-		LDSHARED='$(CC) -bundle'
+-		LDCXXSHARED='$(CXX) -bundle'
+-		if test "$enable_framework" ; then
+-			# Link against the framework. All externals should be defined.
+-			BLDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			LDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			LDCXXSHARED="$LDCXXSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-		else
+-			# No framework, use the Python app as bundle-loader
+-			BLDSHARED="$LDSHARED "'-bundle_loader $(BUILDPYTHON)'
+-			LDSHARED="$LDSHARED "'-bundle_loader $(BINDIR)/python$(VERSION)$(EXE)'
+-			LDCXXSHARED="$LDCXXSHARED "'-bundle_loader $(BINDIR)/python$(VERSION)$(EXE)'
+-		fi ;;
+-	Darwin/*)
+-		# Use -undefined dynamic_lookup whenever possible (10.3 and later).
+-		# This allows an extension to be used in any Python
+-
+-		if test ${MACOSX_DEPLOYMENT_TARGET} '>' 10.2
+-		then
+-			if test "${enable_universalsdk}"; then
+-				LDFLAGS="${UNIVERSAL_ARCH_FLAGS} -isysroot ${UNIVERSALSDK} ${LDFLAGS}"
+-			fi
+-			LDSHARED='$(CC) -bundle -undefined dynamic_lookup'
+-			LDCXXSHARED='$(CXX) -bundle -undefined dynamic_lookup'
+-			BLDSHARED="$LDSHARED"
+-		else
+-			LDSHARED='$(CC) -bundle'
+-			LDCXXSHARED='$(CXX) -bundle'
+-			if test "$enable_framework" ; then
+-				# Link against the framework. All externals should be defined.
+-				BLDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-				LDSHARED="$LDSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-				LDCXXSHARED="$LDCXXSHARED "'$(PYTHONFRAMEWORKPREFIX)/$(PYTHONFRAMEWORKDIR)/Versions/$(VERSION)/$(PYTHONFRAMEWORK)'
+-			else
+-				# No framework, use the Python app as bundle-loader
+-				BLDSHARED="$LDSHARED "'-bundle_loader $(BUILDPYTHON)'
+-				LDSHARED="$LDSHARED "'-bundle_loader $(BINDIR)/python$(VERSION)$(EXE)'
+-				LDCXXSHARED="$LDCXXSHARED "'-bundle_loader $(BINDIR)/python$(VERSION)$(EXE)'
+-			fi
+-		fi
+-		;;
+-	Linux*|GNU*|QNX*)
++	Linux*|GNU*|QNX*|Darwin*)
+ 		LDSHARED='$(CC) -shared'
+ 		LDCXXSHARED='$(CXX) -shared';;
+ 	BSD/OS*/4*)
+@@ -4171,105 +4086,44 @@
    AC_MSG_RESULT(no)
  fi
  
@@ -185,45 +731,7 @@ Index: configure.in
 -  #include <stdio.h>
 -  #include <stddef.h>
 -  #include <string.h>
-+#AC_MSG_CHECKING(for %zd printf() format support)
-+#AC_TRY_RUN([#include <stdio.h>
-+##include <stddef.h>
-+##include <string.h>
-+#
-+##ifdef HAVE_SYS_TYPES_H
-+##include <sys/types.h>
-+##endif
-+#
-+##ifdef HAVE_SSIZE_T
-+#typedef ssize_t Py_ssize_t;
-+##elif SIZEOF_VOID_P == SIZEOF_LONG
-+#typedef long Py_ssize_t;
-+##else
-+#typedef int Py_ssize_t;
-+##endif
-+#
-+#int main()
-+#{
-+#    char buffer[256];
-+#
-+#    if(sprintf(buffer, "%zd", (size_t)123) < 0)
-+#       	return 1;
-+#
-+#    if (strcmp(buffer, "123"))
-+#	return 1;
-+#
-+#    if (sprintf(buffer, "%zd", (Py_ssize_t)-123) < 0)
-+#       	return 1;
-+#
-+#    if (strcmp(buffer, "-123"))
-+#	return 1;
-+#
-+#    return 0;
-+#}],
-+#[AC_MSG_RESULT(yes)
-+# AC_DEFINE(PY_FORMAT_SIZE_T, "z", [Define to printf format modifier for Py_ssize_t])],
-+# AC_MSG_RESULT(no))
- 
+-
 -  #ifdef HAVE_SYS_TYPES_H
 -  #include <sys/types.h>
 -  #endif
@@ -314,14 +822,50 @@ Index: configure.in
 -  AC_DEFINE(PY_FORMAT_SIZE_T, "z",
 -  [Define to printf format modifier for Py_ssize_t])
 -fi
--
++#AC_MSG_CHECKING(for %zd printf() format support)
++#AC_TRY_RUN([#include <stdio.h>
++##include <stddef.h>
++##include <string.h>
++#
++##ifdef HAVE_SYS_TYPES_H
++##include <sys/types.h>
++##endif
++#
++##ifdef HAVE_SSIZE_T
++#typedef ssize_t Py_ssize_t;
++##elif SIZEOF_VOID_P == SIZEOF_LONG
++#typedef long Py_ssize_t;
++##else
++#typedef int Py_ssize_t;
++##endif
++#
++#int main()
++#{
++#    char buffer[256];
++#
++#    if(sprintf(buffer, "%zd", (size_t)123) < 0)
++#       	return 1;
++#
++#    if (strcmp(buffer, "123"))
++#	return 1;
++#
++#    if (sprintf(buffer, "%zd", (Py_ssize_t)-123) < 0)
++#       	return 1;
++#
++#    if (strcmp(buffer, "-123"))
++#	return 1;
++#
++#    return 0;
++#}],
++#[AC_MSG_RESULT(yes)
++# AC_DEFINE(PY_FORMAT_SIZE_T, "z", [Define to printf format modifier for Py_ssize_t])],
++# AC_MSG_RESULT(no))
+ 
  AC_CHECK_TYPE(socklen_t,,
    AC_DEFINE(socklen_t,int,
-             [Define to `int' if <sys/socket.h> does not define.]),[
-Index: setup.py
-===================================================================
---- setup.py	(revisión: 29)
-+++ setup.py	(copia de trabajo)
+diff -r 38897e3d21f0 setup.py
+--- setup.py	Tue Feb 19 13:31:31 2013 -0800
++++ setup.py	Tue Feb 19 16:25:30 2013 -0800
 @@ -304,13 +304,15 @@
              self.announce('WARNING: skipping import check for Cygwin-based "%s"'
                  % ext.name)
@@ -377,325 +921,3 @@ Index: setup.py
  
                  # Pass empty CFLAGS because we'll just append the resulting
                  # CFLAGS to Python's; -g or -O2 is to be avoided.
-Index: Objects/stringlib/localeutil.h
-===================================================================
---- Objects/stringlib/localeutil.h	(revisión: 29)
-+++ Objects/stringlib/localeutil.h	(copia de trabajo)
-@@ -202,10 +202,8 @@
-                                   Py_ssize_t n_digits,
-                                   Py_ssize_t min_width)
- {
--        struct lconv *locale_data = localeconv();
--        const char *grouping = locale_data->grouping;
--        const char *thousands_sep = locale_data->thousands_sep;
--
-+        const char *grouping = 3;
-+        const char *thousands_sep = ",";
-         return _Py_InsertThousandsGrouping(buffer, n_buffer, digits, n_digits,
-                                            min_width, grouping, thousands_sep);
- }
-Index: Objects/stringlib/formatter.h
-===================================================================
---- Objects/stringlib/formatter.h	(revisión: 29)
-+++ Objects/stringlib/formatter.h	(copia de trabajo)
-@@ -639,13 +639,7 @@
- get_locale_info(int type, LocaleInfo *locale_info)
- {
-     switch (type) {
--    case LT_CURRENT_LOCALE: {
--        struct lconv *locale_data = localeconv();
--        locale_info->decimal_point = locale_data->decimal_point;
--        locale_info->thousands_sep = locale_data->thousands_sep;
--        locale_info->grouping = locale_data->grouping;
--        break;
--    }
-+    case LT_CURRENT_LOCALE:
-     case LT_DEFAULT_LOCALE:
-         locale_info->decimal_point = ".";
-         locale_info->thousands_sep = ",";
-Index: Objects/longobject.c
-===================================================================
---- Objects/longobject.c	(revisión: 29)
-+++ Objects/longobject.c	(copia de trabajo)
-@@ -813,13 +813,18 @@
-     return (void *)x;
- }
- 
-+#ifdef ANDROID
-+    #define IS_LITTLE_ENDIAN (int)*(unsigned char*)&one
-+#endif
-+
- #ifdef HAVE_LONG_LONG
- 
- /* Initial PY_LONG_LONG support by Chris Herborth (chrish@qnx.com), later
-  * rewritten to use the newer PyLong_{As,From}ByteArray API.
-  */
--
--#define IS_LITTLE_ENDIAN (int)*(unsigned char*)&one
-+#ifndef ANDROID
-+    #define IS_LITTLE_ENDIAN (int)*(unsigned char*)&one
-+#endif
- #define PY_ABS_LLONG_MIN (0-(unsigned PY_LONG_LONG)PY_LLONG_MIN)
- 
- /* Create a new long int object from a C PY_LONG_LONG int. */
-@@ -891,7 +896,7 @@
-     }
-     return (PyObject *)v;
- }
--
-+#ifndef ANDROID
- /* Create a new long int object from a C Py_ssize_t. */
- 
- PyObject *
-@@ -913,6 +918,7 @@
-     return _PyLong_FromByteArray((unsigned char *)&bytes,
-                                  SIZEOF_SIZE_T, IS_LITTLE_ENDIAN, 0);
- }
-+#endif
- 
- /* Get a C PY_LONG_LONG int from a long int object.
-    Return -1 and set an error if overflow occurs. */
-@@ -1121,7 +1127,32 @@
-     }
-     return res;
- }
-+#ifdef ANDROID
-+/* Create a new long int object from a C Py_ssize_t. */
- 
-+PyObject *
-+PyLong_FromSsize_t(Py_ssize_t ival)
-+{
-+	Py_ssize_t bytes = ival;
-+	int one = 1;
-+	return _PyLong_FromByteArray(
-+			(unsigned char *)&bytes,
-+			SIZEOF_SIZE_T, IS_LITTLE_ENDIAN, 1);
-+}
-+
-+/* Create a new long int object from a C size_t. */
-+
-+PyObject *
-+PyLong_FromSize_t(size_t ival)
-+{
-+	size_t bytes = ival;
-+	int one = 1;
-+	return _PyLong_FromByteArray(
-+			(unsigned char *)&bytes,
-+			SIZEOF_SIZE_T, IS_LITTLE_ENDIAN, 0);
-+}
-+#endif
-+
- #undef IS_LITTLE_ENDIAN
- 
- #endif /* HAVE_LONG_LONG */
-Index: Lib/ctypes/__init__.py
-===================================================================
---- Lib/ctypes/__init__.py	(revisión: 29)
-+++ Lib/ctypes/__init__.py	(copia de trabajo)
-@@ -6,6 +6,13 @@
- import os as _os, sys as _sys
- 
- __version__ = "1.1.0"
-+import _ctypes
-+odlopen = getattr(_ctypes, 'dlopen')
-+def __dlopen(name, flag=_ctypes.RTLD_GLOBAL|_ctypes.RTLD_LOCAL):
-+  if name:
-+    return odlopen(name, flag)
-+  return 0L
-+_sys.modules["_ctypes"].dlopen=__dlopen
- 
- from _ctypes import Union, Structure, Array
- from _ctypes import _Pointer
-@@ -438,7 +445,7 @@
- elif _sys.platform == "cygwin":
-     pythonapi = PyDLL("libpython%d.%d.dll" % _sys.version_info[:2])
- else:
--    pythonapi = PyDLL(None)
-+    pythonapi = PyDLL("libpython%d.%d.so" % _sys.version_info[:2])
- 
- 
- if _os.name in ("nt", "ce"):
-Index: Makefile.pre.in
-===================================================================
---- Makefile.pre.in	(revisión: 29)
-+++ Makefile.pre.in	(copia de trabajo)
-@@ -182,6 +182,7 @@
- 
- PYTHON=		python$(EXE)
- BUILDPYTHON=	python$(BUILDEXE)
-+HOSTPYTHON=	./$(BUILDPYTHON)
- 
- # The task to run while instrument when building the profile-opt target
- PROFILE_TASK=	$(srcdir)/Tools/pybench/pybench.py -n 2 --with-gc --with-syscheck
-@@ -407,8 +408,8 @@
- # Build the shared modules
- sharedmods: $(BUILDPYTHON)
- 	@case $$MAKEFLAGS in \
--	*s*) $(RUNSHARED) CC='$(CC)' LDSHARED='$(BLDSHARED)' OPT='$(OPT)' ./$(BUILDPYTHON) -E $(srcdir)/setup.py -q build;; \
--	*) $(RUNSHARED) CC='$(CC)' LDSHARED='$(BLDSHARED)' OPT='$(OPT)' ./$(BUILDPYTHON) -E $(srcdir)/setup.py build;; \
-+	*s*) $(RUNSHARED) CC='$(CC)' LDSHARED='$(BLDSHARED)' OPT='$(OPT)'  $(HOSTPYTHON) -E $(srcdir)/setup.py -q build;; \
-+	*) $(RUNSHARED) CC='$(CC)' LDSHARED='$(BLDSHARED)' OPT='$(OPT)'  $(HOSTPYTHON) -E $(srcdir)/setup.py build;; \
- 	esac
- 
- # Build static library
-@@ -540,9 +541,9 @@
- 
- # Use a stamp file to prevent make -j invoking pgen twice
- $(GRAMMAR_H) $(GRAMMAR_C): Parser/pgen.stamp
--Parser/pgen.stamp: $(PGEN) $(GRAMMAR_INPUT)
-+Parser/pgen.stamp: $(HOSTPGEN) $(GRAMMAR_INPUT)
- 		-@$(INSTALL) -d Include
--		$(PGEN) $(GRAMMAR_INPUT) $(GRAMMAR_H) $(GRAMMAR_C)
-+		$(HOSTPGEN) $(GRAMMAR_INPUT) $(GRAMMAR_H) $(GRAMMAR_C)
- 		-touch Parser/pgen.stamp
- 
- $(PGEN):	$(PGENOBJS)
-@@ -926,25 +927,25 @@
- 	done
- 	$(INSTALL_DATA) $(srcdir)/LICENSE $(DESTDIR)$(LIBDEST)/LICENSE.txt
- 	PYTHONPATH=$(DESTDIR)$(LIBDEST)  $(RUNSHARED) \
--		./$(BUILDPYTHON) -Wi -tt $(DESTDIR)$(LIBDEST)/compileall.py \
-+		$(HOSTPYTHON) -Wi -tt $(DESTDIR)$(LIBDEST)/compileall.py \
- 		-d $(LIBDEST) -f \
- 		-x 'bad_coding|badsyntax|site-packages|lib2to3/tests/data' \
- 		$(DESTDIR)$(LIBDEST)
- 	PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
--		./$(BUILDPYTHON) -Wi -tt -O $(DESTDIR)$(LIBDEST)/compileall.py \
-+		$(HOSTPYTHON) -Wi -tt -O $(DESTDIR)$(LIBDEST)/compileall.py \
- 		-d $(LIBDEST) -f \
- 		-x 'bad_coding|badsyntax|site-packages|lib2to3/tests/data' \
- 		$(DESTDIR)$(LIBDEST)
- 	-PYTHONPATH=$(DESTDIR)$(LIBDEST)  $(RUNSHARED) \
--		./$(BUILDPYTHON) -Wi -t $(DESTDIR)$(LIBDEST)/compileall.py \
-+		$(HOSTPYTHON) -Wi -t $(DESTDIR)$(LIBDEST)/compileall.py \
- 		-d $(LIBDEST)/site-packages -f \
- 		-x badsyntax $(DESTDIR)$(LIBDEST)/site-packages
- 	-PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
--		./$(BUILDPYTHON) -Wi -t -O $(DESTDIR)$(LIBDEST)/compileall.py \
-+		$(HOSTPYTHON) -Wi -t -O $(DESTDIR)$(LIBDEST)/compileall.py \
- 		-d $(LIBDEST)/site-packages -f \
- 		-x badsyntax $(DESTDIR)$(LIBDEST)/site-packages
- 	-PYTHONPATH=$(DESTDIR)$(LIBDEST) $(RUNSHARED) \
--		./$(BUILDPYTHON) -Wi -t -c "import lib2to3.pygram, lib2to3.patcomp;lib2to3.patcomp.PatternCompiler()"
-+		$(HOSTPYTHON) -Wi -t -c "import lib2to3.pygram, lib2to3.patcomp;lib2to3.patcomp.PatternCompiler()"
- 
- # Create the PLATDIR source directory, if one wasn't distributed..
- $(srcdir)/Lib/$(PLATDIR):
-@@ -1049,7 +1050,7 @@
- # Install the dynamically loadable modules
- # This goes into $(exec_prefix)
- sharedinstall: sharedmods
--	$(RUNSHARED) ./$(BUILDPYTHON) -E $(srcdir)/setup.py install \
-+	$(RUNSHARED) $(HOSTPYTHON) -E $(srcdir)/setup.py install \
- 	   	--prefix=$(prefix) \
- 		--install-scripts=$(BINDIR) \
- 		--install-platlib=$(DESTSHARED) \
-Index: Modules/_localemodule.c
-===================================================================
---- Modules/_localemodule.c	(revisión: 29)
-+++ Modules/_localemodule.c	(copia de trabajo)
-@@ -205,6 +205,7 @@
- static PyObject*
- PyLocale_localeconv(PyObject* self)
- {
-+#ifndef ANDROID
-     PyObject* result;
-     struct lconv *l;
-     PyObject *x;
-@@ -265,6 +266,7 @@
-   failed:
-     Py_XDECREF(result);
-     Py_XDECREF(x);
-+#endif
-     return NULL;
- }
- 
-Index: Modules/termios.c
-===================================================================
---- Modules/termios.c	(revisión: 29)
-+++ Modules/termios.c	(copia de trabajo)
-@@ -227,6 +227,7 @@
-     return Py_None;
- }
- 
-+#ifndef ANDROID
- PyDoc_STRVAR(termios_tcdrain__doc__,
- "tcdrain(fd) -> None\n\
- \n\
-@@ -246,6 +247,7 @@
-     Py_INCREF(Py_None);
-     return Py_None;
- }
-+#endif
- 
- PyDoc_STRVAR(termios_tcflush__doc__,
- "tcflush(fd, queue) -> None\n\
-@@ -301,8 +303,10 @@
-      METH_VARARGS, termios_tcsetattr__doc__},
-     {"tcsendbreak", termios_tcsendbreak,
-      METH_VARARGS, termios_tcsendbreak__doc__},
-+#ifndef ANDROID
-     {"tcdrain", termios_tcdrain,
-      METH_VARARGS, termios_tcdrain__doc__},
-+#endif
-     {"tcflush", termios_tcflush,
-      METH_VARARGS, termios_tcflush__doc__},
-     {"tcflow", termios_tcflow,
-Index: Modules/pwdmodule.c
-===================================================================
---- Modules/pwdmodule.c	(revisión: 29)
-+++ Modules/pwdmodule.c	(copia de trabajo)
-@@ -68,14 +68,14 @@
- #define SETS(i,val) sets(v, i, val)
- 
-     SETS(setIndex++, p->pw_name);
--#ifdef __VMS
-+#if defined(__VMS) || defined(ANDROID)
-     SETS(setIndex++, "");
- #else
-     SETS(setIndex++, p->pw_passwd);
- #endif
-     SETI(setIndex++, p->pw_uid);
-     SETI(setIndex++, p->pw_gid);
--#ifdef __VMS
-+#if defined(__VMS) || defined(ANDROID)
-     SETS(setIndex++, "");
- #else
-     SETS(setIndex++, p->pw_gecos);
-Index: Modules/posixmodule.c
-===================================================================
---- Modules/posixmodule.c	(revisión: 29)
-+++ Modules/posixmodule.c	(copia de trabajo)
-@@ -155,6 +155,9 @@
- #define HAVE_SYSTEM     1
- #define HAVE_WAIT       1
- #define HAVE_TTYNAME    1
-+#ifdef ANDROID
-+    #undef HAVE_TTYNAME
-+#endif
- #endif  /* PYOS_OS2 && PYCC_GCC && __VMS */
- #endif  /* _MSC_VER */
- #endif  /* __BORLANDC__ */
-@@ -3787,7 +3790,7 @@
-     slave_fd = open(slave_name, O_RDWR | O_NOCTTY); /* open slave */
-     if (slave_fd < 0)
-         return posix_error();
--#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC)
-+#if !defined(__CYGWIN__) && !defined(HAVE_DEV_PTC) && !defined(ANDROID)
-     ioctl(slave_fd, I_PUSH, "ptem"); /* push ptem */
-     ioctl(slave_fd, I_PUSH, "ldterm"); /* push ldterm */
- #ifndef __hpux
-Index: Modules/socketmodule.c
-===================================================================
---- Modules/socketmodule.c      2011-08-20 14:31:45.000000000 -0300
-+++ Modules/socketmodule.c      2012-09-05 22:43:29.000000000 -0300
-@@ -3474,7 +3474,7 @@
-         return NULL;
-     }
-     Py_BEGIN_ALLOW_THREADS
--#ifdef HAVE_GETHOSTBYNAME_R
-+#if 0 //#ifdef HAVE_GETHOSTBYNAME_R
- #if   defined(HAVE_GETHOSTBYNAME_R_6_ARG)
-     result = gethostbyaddr_r(ap, al, af,
-         &hp_allocated, buf, buf_len,
-
