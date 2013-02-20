@@ -18,7 +18,7 @@ def make(options, env, target, sources, cython_src, cfiles):
     extralibs = "-lodbc32 -lwinspool -lwinmm -lshell32 -lcomctl32 -lctl3d32 -lodbc32 -ladvapi32 -lopengl32 -lglu32 -lole32 -loleaut32 -luuid -lgdi32 -limm32 -lversion"
 
     if options.bare:
-        cmd = '%s -Wl,--no-export-dynamic -static-libgcc -static -DMS_WIN32 -DMS_WINDOWS -DHAVE_USABLE_WCHAR_T %s -I%s -I%s -L%s -lpython2.7 -mwindows -lmingw32 -lz -lws2_32 -lwsock32 %s %s %s -o %s' %\
+        cmd = '%s -Wl,--no-export-dynamic -static-libgcc -static -DMS_WIN32 -DMS_WINDOWS -DHAVE_USABLE_WCHAR_T %s -I%s -I%s -L%s -lpython2.7 -mwindows -lmingw32 -lz -lws2_32 -lwsock32 %s -o %s' %\
               (env['CC'],
                sources,
                join(target.dist, 'include'),
