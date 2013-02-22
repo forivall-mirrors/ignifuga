@@ -50,4 +50,3 @@ Where should I begin?
 =====================
 
 [Check out our Getting Started guide](http://ignifuga.org/#getthecode)
-
