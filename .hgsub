@@ -3,3 +3,4 @@ external/SDL_ttf = https://bitbucket.org/gabomdq/sdl_ttf
 external/SDL_image = https://bitbucket.org/gabomdq/sdl_image
 external/SDL_mixer = https://bitbucket.org/gabomdq/sdl_mixer
 external/Rocket = [git] https://github.com/gabomdq/libRocket.git
+external/spine = [git] https://github.com/gabomdq/spine-runtimes.git
