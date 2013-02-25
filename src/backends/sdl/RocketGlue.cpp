@@ -629,8 +629,9 @@ bool RocketSDLRenderInterface::LoadTexture(Rocket::Core::TextureHandle& texture_
    	        texture_handle = (Rocket::Core::TextureHandle) texture;
    	        texture_dimensions = Rocket::Core::Vector2i(surface->w, surface->h);
    	        SDL_FreeSurface(surface);
+   	        return true;
    	    }
-   	    return true;
+   	    SDL_FreeSurface(surface);
    	}
 
    	return false;

@@ -23,10 +23,10 @@ typedef struct
 {
  /* OpenGL functions */
 #define SDL_PROC(ret,func,params) ret (APIENTRY *func) params;
-#define ROCKET_OPENGL
+#define GLFUNCS_OPENGL
 #include "backends/sdl/RocketGLFuncs.hpp"
 #undef SDL_PROC
-#undef ROCKET_OPENGL
+#undef GLFUNCS_OPENGL
 
 } RenderDataGL;
 

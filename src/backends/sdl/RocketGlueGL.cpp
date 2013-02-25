@@ -20,10 +20,10 @@ RocketSDLRenderInterfaceOpenGL::RocketSDLRenderInterfaceOpenGL(SDL_Renderer *r, 
      See: http://stackoverflow.com/questions/1096341/function-pointers-casting-in-c
      */
     #define SDL_PROC SDL_PROC_CPP
-    #define ROCKET_OPENGL
+    #define GLFUNCS_OPENGL
     #include "backends/sdl/RocketGLFuncs.hpp"
     #undef SDL_PROC
-    #undef ROCKET_OPENGL
+    #undef GLFUNCS_OPENGL
 }
 
 // Called by Rocket when it wants to render geometry that it does not wish to optimise.

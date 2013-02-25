@@ -12,7 +12,7 @@ whose terms are available in the LICENSE file or at http://www.ignifuga.org/lice
 
 #define SDL_PROC_UNUSED(ret,func,params)
 
-#ifdef ROCKET_OPENGL
+#ifdef GLFUNCS_OPENGL
 
 SDL_PROC_UNUSED(void, glAccum, (GLenum, GLfloat))
 SDL_PROC_UNUSED(void, glAlphaFunc, (GLenum, GLclampf))
@@ -464,9 +464,9 @@ SDL_PROC(void, glViewport, (GLint x, GLint y, GLsizei width, GLsizei height))
 SDL_PROC(void, glUseProgramObjectARB, (GLhandleARB programObj))
 SDL_PROC(void, glActiveTextureARB, (GLenum texture))
 
-#endif //ROCKET_OPENGL
+#endif //GLFUNCS_OPENGL
 
-#ifdef ROCKET_OPENGLES
+#ifdef GLFUNCS_OPENGLES
 
 SDL_PROC(void, glBindTexture, (GLenum, GLuint))
 SDL_PROC(void, glBlendFunc, (GLenum, GLenum))
@@ -509,9 +509,9 @@ SDL_PROC_UNUSED(void, glDeleteFramebuffersOES, (GLsizei, const GLuint*))
 SDL_PROC(void, glColorPointer, (GLint size, GLenum type, GLsizei stride, const GLvoid * pointer))
 SDL_PROC(void, glDrawElements, (GLenum mode, GLsizei count, GLenum type, const GLvoid * indices))
 SDL_PROC(void, glScissor, (GLint x, GLint y, GLsizei width, GLsizei height))
-#endif //ROCKET_OPENGLES
+#endif //GLFUNCS_OPENGLES
 
-#ifdef ROCKET_OPENGLES2
+#ifdef GLFUNCS_OPENGLES2
 SDL_PROC(void, glActiveTexture, (GLenum))
 SDL_PROC(void, glAttachShader, (GLuint, GLuint))
 SDL_PROC(void, glBindAttribLocation, (GLuint, GLuint, const char *))
@@ -565,4 +565,4 @@ SDL_PROC(void, glDrawElements,
                  const GLvoid * indices))
 SDL_PROC(void, glUniform2f, (GLint, GLfloat, GLfloat))
 SDL_PROC(void, glScissor, (GLint x, GLint y, GLsizei width, GLsizei height))
-#endif //ROCKET_OPENGLES2
+#endif //GLFUNCS_OPENGLES2

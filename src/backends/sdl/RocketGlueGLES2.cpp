@@ -74,10 +74,10 @@ static const char RocketGlueVertexShader[] = " \
 RocketSDLRenderInterfaceOpenGLES2::RocketSDLRenderInterfaceOpenGLES2(SDL_Renderer *r, SDL_Window *w) : RocketSDLRenderInterface(r,w)
 {
     #define SDL_PROC SDL_PROC_CPP
-    #define ROCKET_OPENGLES2
+    #define GLFUNCS_OPENGLES2
     #include "backends/sdl/RocketGLFuncs.hpp"
     #undef SDL_PROC
-    #undef ROCKET_OPENGLES2
+    #undef GLFUNCS_OPENGLES2
 
     render_data.glGetError();
     // We call SDL_RenderClear to make sure the GL context is properly set up

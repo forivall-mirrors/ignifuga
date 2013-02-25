@@ -16,10 +16,10 @@
 RocketSDLRenderInterfaceOpenGLES::RocketSDLRenderInterfaceOpenGLES(SDL_Renderer *r, SDL_Window *w) : RocketSDLRenderInterface(r,w)
 {
     #define SDL_PROC SDL_PROC_CPP
-    #define ROCKET_OPENGLES
+    #define GLFUNCS_OPENGLES
     #include "backends/sdl/RocketGLFuncs.hpp"
     #undef SDL_PROC
-    #undef ROCKET_OPENGLES
+    #undef GLFUNCS_OPENGLES
 }
 
 // Called by Rocket when it wants to render geometry that it does not wish to optimise.
