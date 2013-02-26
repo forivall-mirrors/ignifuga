@@ -122,6 +122,13 @@ public:
 	virtual void ReleaseTexture(Rocket::Core::TextureHandle texture_handle);
 
 	virtual void Resize();
+
+	/// Called by Rocket when it wants to render geometry that it does not wish to optimise.
+    virtual void RenderGeometry(Rocket::Core::Vertex* vertices, int num_vertices, int* indices, int num_indices, Rocket::Core::TextureHandle texture, const Rocket::Core::Vector2f& translation);
+    /// Called by Rocket when it wants to enable or disable scissoring to clip content.
+    virtual void EnableScissorRegion(bool enable);
+    /// Called by Rocket when it wants to change the scissor region.
+    virtual void SetScissorRegion(int x, int y, int width, int height);
 };
 
 #endif // SDLROCKETGLUE_HPP

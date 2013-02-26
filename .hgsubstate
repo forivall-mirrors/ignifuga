@@ -1,5 +1,6 @@
 5c9df8c74b875c7700ba33b782e559a038c158d3 external/Rocket
-24a45895a8571c47ea29b8febb8d358cc8880dd4 external/SDL
+b73a4afb8b7116baa4886d9d87d9218b5a4eddad external/SDL
 87cc0ba4d11a7021e7f1375f56ef177510673e93 external/SDL_image
 903c2200734b74f06909b141ea5da456859f311e external/SDL_mixer
 250ebfdc76d237eb0418c461785b3c1a1a871541 external/SDL_ttf
+ external/spine

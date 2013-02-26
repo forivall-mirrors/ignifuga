@@ -7,9 +7,6 @@
  */
 
 #include "backends/sdl/RocketGlue.hpp"
-#include "backends/sdl/RocketGlueGL.hpp"
-#include "backends/sdl/RocketGlueGLES.hpp"
-#include "backends/sdl/RocketGlueGLES2.hpp"
 
 #include <Rocket/Core/Python/ElementDocumentWrapper.h>
 
@@ -23,16 +20,7 @@
 
 static RocketSDLSystemInterface *rocketSys=NULL;
 static RocketSDLFileInterface *rocketFile=NULL;
-
-#if SDL_VIDEO_RENDER_OGL
-static RocketSDLRenderInterfaceOpenGL *rocketRenderGL=NULL;
-#endif
-#if SDL_VIDEO_RENDER_OGL_ES
-static RocketSDLRenderInterfaceOpenGLES *rocketRenderGLES=NULL;
-#endif
-#if SDL_VIDEO_RENDER_OGL_ES2
-static RocketSDLRenderInterfaceOpenGLES2 *rocketRenderGLES2=NULL;
-#endif
+static RocketSDLRenderInterface *rocketRender=NULL;
 
 Rocket::Core::Context* RocketInit(SDL_Renderer *renderer, SDL_Window *window)
 {
@@ -46,39 +34,9 @@ Rocket::Core::Context* RocketInit(SDL_Renderer *renderer, SDL_Window *window)
 	SDL_RendererInfo render_info;
 	SDL_GetRendererInfo(renderer, &render_info);
 
-	#if SDL_VIDEO_RENDER_OGL
-	if(strcmp("opengl", render_info.name)==0) {
-        rocketRenderGL = new RocketSDLRenderInterfaceOpenGL(renderer, window);
-        Rocket::Core::SetRenderInterface( rocketRenderGL );
-        renderSystemReady = true;
-    }
-    #endif
 
-    #if SDL_VIDEO_RENDER_OGL_ES
-    if(!renderSystemReady && strcmp("opengles", render_info.name)==0) {
-        rocketRenderGLES = new RocketSDLRenderInterfaceOpenGLES(renderer, window);
-        Rocket::Core::SetRenderInterface( rocketRenderGLES );
-        renderSystemReady = true;
-    }
-    #endif
-
-    #if SDL_VIDEO_RENDER_OGL_ES2
-    if(!renderSystemReady && strcmp("opengles2", render_info.name)==0) {
-        rocketRenderGLES2 = new RocketSDLRenderInterfaceOpenGLES2(renderer, window);
-        Rocket::Core::SetRenderInterface( rocketRenderGLES2 );
-        renderSystemReady = true;
-    }
-    #endif
-
-    if (!renderSystemReady) {
-        #if defined(ANDROID)
-        __android_log_print(ANDROID_LOG_ERROR, "SDL", "ERROR WHILE CREATING RENDERER FOR ROCKET");
-        #else
-        printf("ERROR WHILE CREATING RENDERER FOR ROCKET\n");
-        fflush(stdout);
-        #endif
-        return NULL;
-    }
+    rocketRender = new RocketSDLRenderInterface(renderer, window);
+    Rocket::Core::SetRenderInterface( rocketRender );
 
 	Rocket::Core::Initialise();
 	Rocket::Controls::Initialise();
@@ -99,26 +57,11 @@ void RocketFree(Rocket::Core::Context *mainCtx) {
 	    delete rocketSys;
 	    rocketSys = NULL;
 	}
-	#if SDL_VIDEO_RENDER_OGL
-    if (rocketRenderGL) {
-   	    delete rocketRenderGL;
-   	    rocketRenderGL = NULL;
-   	}
-    #endif
 
-    #if SDL_VIDEO_RENDER_OGLES
-    if (rocketRenderGLES) {
-   	    delete rocketRenderGLES;
-   	    rocketRenderGLES = NULL;
+    if (rocketRender) {
+   	    delete rocketRender;
+   	    rocketRender = NULL;
    	}
-    #endif
-
-    #if SDL_VIDEO_RENDER_OGLES2
-    if (rocketRenderGLES2) {
-   	    delete rocketRenderGLES2;
-   	    rocketRenderGLES2 = NULL;
-   	}
-    #endif
 
 }
 
@@ -664,6 +607,30 @@ bool RocketSDLRenderInterface::GenerateTexture(Rocket::Core::TextureHandle& text
 void RocketSDLRenderInterface::ReleaseTexture(Rocket::Core::TextureHandle texture_handle)
 {
 	SDL_DestroyTexture((SDL_Texture*) texture_handle);
+}
+
+// Called by Rocket when it wants to render geometry that it does not wish to optimise.
+void RocketSDLRenderInterface::RenderGeometry(Rocket::Core::Vertex* vertices, int num_vertices, int* indices, int num_indices, const Rocket::Core::TextureHandle texture, const Rocket::Core::Vector2f& translation)
+{
+    SDL_RenderGeometry (renderer, (SDL_Texture*)texture, (SDL_Vertex *)vertices, num_vertices, indices, num_indices, (SDL_Vector2f*) &translation);
+}
+
+// Called by Rocket when it wants to enable or disable scissoring to clip content.
+void RocketSDLRenderInterface::EnableScissorRegion(bool enable)
+{
+	if (enable) SDL_EnableScissor(renderer);
+	else SDL_DisableScissor(renderer);
+}
+
+// Called by Rocket when it wants to change the scissor region.
+void RocketSDLRenderInterface::SetScissorRegion(int x, int y, int width, int height)
+{
+	SDL_Rect r;
+	r.x = x;
+	r.y = y;
+	r.w = width;
+	r.h = height;
+	SDL_ScissorRegion(renderer, &r);
 }
 
 #endif //!SDL_RENDER_DISABLED
