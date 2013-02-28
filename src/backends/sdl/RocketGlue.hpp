@@ -49,8 +49,9 @@
 #include <Rocket/Core/FileInterface.h>
 #include <Rocket/Controls.h>
 
-Rocket::Core::Context* RocketInit(SDL_Renderer *renderer, SDL_Window *window);
-void RocketFree(Rocket::Core::Context *mainCtx);
+Rocket::Core::Context* RocketInit(SDL_Renderer *renderer, const char *name, int width, int height);
+void RocketFree(Rocket::Core::Context *ctx);
+void RocketShutdown();
 
 int SDLKeyToRocketInput(SDL_Keycode sdlkey);
 Rocket::Core::Input::KeyModifier RocketConvertSDLmod( Uint16 sdl );
@@ -101,10 +102,10 @@ class RocketSDLRenderInterface : public Rocket::Core::RenderInterface
 {
 protected:
     SDL_Renderer *renderer;
-    SDL_Window *window;
+    //SDL_Window *window;
 
 public:
-	RocketSDLRenderInterface(SDL_Renderer *r, SDL_Window *w);
+	RocketSDLRenderInterface(SDL_Renderer *r);
 
 	/// Called by Rocket when it wants to compile geometry it believes will be static for the forseeable future.
 	virtual Rocket::Core::CompiledGeometryHandle CompileGeometry(Rocket::Core::Vertex* vertices, int num_vertices, int* indices, int num_indices, Rocket::Core::TextureHandle texture);

@@ -10,16 +10,18 @@
 
 from ignifuga.backends.sdl.SDL cimport *
 from ignifuga.backends.sdl.Canvas cimport Canvas
-from ignifuga.backends.GameLoopBase cimport EventType, EVENT_ETHEREAL_SCROLL, EVENT_TOUCH_LAST
-#if ROCKET
-from ignifuga.backends.sdl.Rocket cimport Rocket
-#endif
+from ignifuga.backends.GameLoopBase cimport EventType, EVENT_ETHEREAL_SCROLL, EVENT_TOUCH_LAST, EVENT_ETHEREAL_WINDOW_RESIZED
 from libc.stdlib cimport *
 from libc.string cimport *
 from libcpp.map cimport *
 from libcpp.deque cimport *
 from libcpp.pair cimport *
 from cpython cimport *
+
+
+cdef class RenderableComponent:
+    cdef bint render(self)
+    cdef bint rawEvent(self, SDL_Event *event)
 
 cdef struct _Sprite:
     # sx,sy  -> are the source coordinates in the sprite (0,0 as the sprite will always handle its own compositing)
@@ -34,7 +36,7 @@ cdef struct _Sprite:
     int z
     Uint8 r,g,b,a
 
-    bint show, dirty, free, interactive
+    bint show, dirty, free, interactive, rawEvents
     SDL_Rect _src, _dst
     PyObject *component
 
@@ -77,11 +79,6 @@ cdef class Renderer:
     # JPEG compressor
     cdef tjhandle tjh
 
-#if ROCKET
-    # Rocket wrapper
-    cdef Rocket rocket
-#endif
-
     cdef void _processSprite(self, Sprite_p sprite, SDL_Rect *screen, bint doScale) nogil
     cdef void _processSprites(self, bint all) nogil
     cdef processEvent(self, EventType action, int x, int y)
@@ -111,8 +108,8 @@ cdef class Renderer:
     cdef bint _indexSprite(self, _Sprite *sprite)
     cdef bint _unindexSprite(self, _Sprite *sprite)
 
-    cdef _Sprite* _addSprite(self,  obj, bint interactive, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a)
-    cpdef Sprite addSprite(self, obj, bint interactive, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a)
+    cdef _Sprite* _addSprite(self,  obj, bint interactive, bint rawEvents, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a)
+    cpdef Sprite addSprite(self, obj, bint interactive, bint rawEvents, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a)
     cpdef bint removeSprite(self, Sprite sprite_w)
     cdef bint _removeSprite(self, _Sprite *sprite)
     cpdef bint spriteZ(self, Sprite sprite_w, int z)
@@ -131,6 +128,7 @@ cdef class Renderer:
     cdef bint captureScreenJPEG(self, unsigned char **jpegBuffer, unsigned long *jpegSize) nogil
     cdef bint releaseCapturedScreenBufferJPEG(self, unsigned char *jpegBuffer) nogil
     cdef bint _renderWalkAreas(self)
+    cdef bint event(self, SDL_Event *event)
 
     cpdef cleanup(self)
 

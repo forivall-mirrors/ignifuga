@@ -8,6 +8,8 @@
 # libRocket Cython wrapper
 
 from ignifuga.backends.sdl.SDL cimport *
+from ignifuga.backends.sdl.Renderer cimport Renderer, RenderableComponent, _Sprite as _RendererSprite
+from ignifuga.backends.GameLoopBase cimport EventType, EVENT_ETHEREAL_WINDOW_RESIZED
 from cpython cimport *
 
 
@@ -64,32 +66,23 @@ cdef extern from "Rocket/Core/Context.h" namespace "Rocket::Core":
         void SetDimensions(Vector2i& dimensions)
 
 cdef extern from "backends/sdl/RocketGlue.hpp":
-    Context* RocketInit(SDL_Renderer *renderer, SDL_Window *window)
-    void RocketFree(Context *mainCtx)
+    Context* RocketInit(SDL_Renderer *renderer, const char *name, int width, int height)
+    void RocketFree(Context *ctx)
+    void RocketShutdown()
     PyObject* GetDocumentNamespace(ElementDocument* document)
     void InjectRocket( Context* context, SDL_Event& event )
 
-cdef class Rocket:
+cdef class _RocketComponent (RenderableComponent):
+    cdef ElementDocument *doc
     cdef bint released
     cdef Context *rocketCtx
-    cdef SDL_Renderer *renderer
-    cdef SDL_Window *window
+    cdef _RendererSprite *_rendererSprite
+    cdef Renderer renderer
+    # cdef SDL_Window *window
 
-    cdef init(self, SDL_Renderer *renderer, SDL_Window *window)
-    cdef free(self)
-    cdef update(self)
-    cdef render(self)
-
-    cdef void loadFont(self, bytes fontname)
-    cdef ElementDocument * loadDocument(self, bytes url)
-    cdef unloadDocument(self, ElementDocument *doc)
-    cdef void resize(self, int width, int height)
-    cdef getDocumentContext(self, ElementDocument *doc)
-    cdef PushSDLEvent(self, SDL_Event *event)
-
-cdef class _RocketComponent:
-    cdef ElementDocument *doc
-    cdef Rocket rocket
+    cpdef init(self)
+    cpdef free(self)
+    cpdef update(self, now)
 
     cpdef _loadDocument(self, filename)
     cpdef _unloadDocument(self)
@@ -97,3 +90,8 @@ cdef class _RocketComponent:
     cpdef getContext(self)
     cpdef show(self)
     cpdef hide(self)
+    cdef bint render(self)
+    cdef bint rawEvent(self, SDL_Event *event)
+    cpdef event(self, EventType action, int sx, int sy)
+
+    cpdef updateSize(self)

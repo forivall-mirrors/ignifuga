@@ -108,7 +108,7 @@ class Text(Sprite):
     def _updateCanvas(self):
         if self._canvas != None and self._font != None:
             self._canvas.text(self._text,self._color, self._font, self._size)
-            self._updateSize()
+            self.updateSize()
             if self._rendererSpriteId:
                 # The canvas surface changed, remove and add it to the renderer
                 self.hide()

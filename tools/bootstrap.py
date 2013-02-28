@@ -46,7 +46,7 @@ def find_cython():
         output = Popen(shlex.split(cmd), stderr=PIPE, stdout=PIPE).communicate()
         version = output[0].split('\n')[0] if output[0] != '' else output[1].split('\n')[0]
         v = re.search("(\d+)\.(\d+)(.*)", version)
-        # We are looking for 0.17 or higher
+        # We are looking for 0.18 or higher
         cython_ver = []
         counter = 0
         while True:
@@ -59,7 +59,7 @@ def find_cython():
             if cython_ver[0] > 0:
                 return cython
             if cython_ver[0] == 0:
-                if cython_ver[1] >= 17:
+                if cython_ver[1] >= 18:
                     return cython
                     #            if v.group(1) == 16:
                     #                if v.groups(2).startswith('1+') or v.groups(2) >= 2:
@@ -325,18 +325,20 @@ if __name__ == '__main__':
                     exit(1)
             print 'PIP is available'
             print 'Installing Cython using PIP'
-            cmd = 'sudo pip install cython'
+            cmd = 'sudo pip install --upgrade cython'
             Popen(shlex.split(cmd)).communicate()
         elif system == 'Darwin':
             print 'Installing Cython using Mac Ports'
             cmd = PORT_CMD + 'install py27-cython'
+            Popen(shlex.split(cmd)).communicate()
+            cmd = PORT_CMD + 'upgrade py27-cython'
             Popen(shlex.split(cmd)).communicate()
             cmd = PORT_CMD + 'select --set cython cython27'
             Popen(shlex.split(cmd)).communicate()
 
         cython = find_cython()
         if cython == None:
-            print 'Could not install Cython (0.17 or higher). An system wide version may be present. Try installing it manually'
+            print 'Could not install Cython (0.18 or higher). An system wide / older version may be present. Try installing/upgrading it manually'
             exit(1)
     else:
         print 'Cython is available'

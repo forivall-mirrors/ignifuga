@@ -234,9 +234,9 @@ class Viewable(Component):
 
     @width.setter
     def width(self, value):
-        # Set the internal width, the precomputed _width_pre is updated with _updateSize
+        # Set the internal width, the precomputed _width_pre is updated with updateSize
         self._width = value
-        self._updateSize()
+        self.updateSize()
 
     @property
     def height(self):
@@ -244,15 +244,15 @@ class Viewable(Component):
 
     @height.setter
     def height(self, value):
-        # Set the internal height, the precomputed _height_pre is updated with _updateSize
+        # Set the internal height, the precomputed _height_pre is updated with updateSize
         self._height = value
-        self._updateSize()
+        self.updateSize()
 
     def getRect(self):
         """ Get the x,y,w,h rectangle the node occupies in scene coordinates """
         return (self.x, self.y, self.width, self.height)
 
-    def _updateSize(self):
+    def updateSize(self):
         self._width_src = self._width_pre = self._width if self._width != None else 0
         self._height_src = self._height_pre = self._height if self._height != None else 0
 

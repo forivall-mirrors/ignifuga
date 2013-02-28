@@ -11,7 +11,6 @@ from ignifuga.Gilbert import Gilbert
 from ignifuga.components.Viewable import Viewable
 from ignifuga.Task import *
 import sys
-from ignifuga.backends.GameLoopBase import EVENT_TYPE_TOUCH_DOWN, EVENT_TYPE_TOUCH_UP, EVENT_TYPE_TOUCH_MOTION, EVENT_TYPE_TOUCH_LAST, EVENT_TYPE_ETHEREAL_ZOOM_IN, EVENT_TYPE_ETHEREAL_ZOOM_OUT, EVENT_TYPE_ETHEREAL_SCROLL
 from cython.operator cimport dereference as deref, preincrement as inc
 from base64 import b64decode
 from ignifuga.Log import error
@@ -66,7 +65,7 @@ cdef class _SpriteComponent:
         if 'overlays' in self._data:
             self.setOverlays(self._data['overlays'])
 
-        self._updateSize()
+        self.updateSize()
         self.show()
 
     cpdef free(self):
@@ -142,7 +141,7 @@ cdef class _SpriteComponent:
             self._updateRenderer()
             self._dirty = False
 
-    cdef _updateSize(self):
+    cdef updateSize(self):
         # Update our "public" width,height
         if self._width != None:
             self._width_pre = self._width
@@ -384,8 +383,8 @@ cdef class _SpriteComponent:
 
     cpdef show(self):
         if self._rendererSprite == NULL and self._active and self._canvas != None:
-            self._updateSize()
-            self._rendererSprite = self.renderer._addSprite(self, self.interactive, self._canvas,
+            self.updateSize()
+            self._rendererSprite = self.renderer._addSprite(self, self.interactive, False, self._canvas,
                 self._z,
                 0, 0, self._width_src, self._height_src,
                 self._x, self._y, self._width_pre, self._height_pre,
@@ -406,10 +405,10 @@ cdef class _SpriteComponent:
             self.hide()
             self.show()
 
-    cpdef event(self, action, sx, sy):
+    cpdef event(self, EventType action, int sx, int sy):
         """ Event processing """
         ret = super(Sprite, self).event(action, sx, sy)
-        if action == EVENT_TYPE_ETHEREAL_SCROLL:
+        if action == EVENT_ETHEREAL_SCROLL:
             self.updateRenderer()
         return ret
 

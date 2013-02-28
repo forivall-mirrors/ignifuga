@@ -22,47 +22,52 @@ static RocketSDLSystemInterface *rocketSys=NULL;
 static RocketSDLFileInterface *rocketFile=NULL;
 static RocketSDLRenderInterface *rocketRender=NULL;
 
-Rocket::Core::Context* RocketInit(SDL_Renderer *renderer, SDL_Window *window)
+Rocket::Core::Context* RocketInit(SDL_Renderer *renderer, const char *name, int width, int height)
 {
 	/* Setup rocket */
-	bool renderSystemReady = false;
-	rocketSys = new RocketSDLSystemInterface();
-	rocketFile = new RocketSDLFileInterface();
+	if (!rocketSys) {
+	    rocketSys = new RocketSDLSystemInterface();
+	    Rocket::Core::SetSystemInterface( rocketSys );
+	}
 
-	Rocket::Core::SetSystemInterface( rocketSys );
-	Rocket::Core::SetFileInterface( rocketFile );
-	SDL_RendererInfo render_info;
-	SDL_GetRendererInfo(renderer, &render_info);
+	if (!rocketFile) {
+	    rocketFile = new RocketSDLFileInterface();
+	    Rocket::Core::SetFileInterface( rocketFile );
+	}
 
+	if (!rocketRender) {
+	    rocketRender = new RocketSDLRenderInterface(renderer);
+        Rocket::Core::SetRenderInterface( rocketRender );
 
-    rocketRender = new RocketSDLRenderInterface(renderer, window);
-    Rocket::Core::SetRenderInterface( rocketRender );
+        Rocket::Core::Initialise();
+        Rocket::Controls::Initialise();
+	}
 
-	Rocket::Core::Initialise();
-	Rocket::Controls::Initialise();
-
-	int width, height;
-	SDL_GetWindowSize(window, &width, &height);
-
-	Rocket::Core::Context* rocketContext = Rocket::Core::CreateContext( "main", Rocket::Core::Vector2i(width, height) );
+	Rocket::Core::Context* rocketContext = Rocket::Core::CreateContext( name, Rocket::Core::Vector2i(width, height) );
 
 	return rocketContext;
 }
 
 
-void RocketFree(Rocket::Core::Context *mainCtx) {
-	mainCtx->RemoveReference();
-	Rocket::Core::Shutdown();
+void RocketFree(Rocket::Core::Context *ctx) {
+	ctx->RemoveReference();
+}
+
+void RocketShutdown() {
+    Rocket::Core::Shutdown();
 	if (rocketSys) {
 	    delete rocketSys;
 	    rocketSys = NULL;
+	}
+	if (rocketFile) {
+	    delete rocketFile;
+	    rocketFile = NULL;
 	}
 
     if (rocketRender) {
    	    delete rocketRender;
    	    rocketRender = NULL;
    	}
-
 }
 
 void InjectRocket( Rocket::Core::Context* context, SDL_Event& event )
@@ -515,10 +520,10 @@ PyObject* GetDocumentNamespace(Rocket::Core::ElementDocument * document) {
 
 
 #if !SDL_RENDER_DISABLED
-RocketSDLRenderInterface::RocketSDLRenderInterface(SDL_Renderer *r, SDL_Window *w)
+RocketSDLRenderInterface::RocketSDLRenderInterface(SDL_Renderer *r)
 {
     renderer = r;
-    window = w;
+    //window = w;
 }
 
 void RocketSDLRenderInterface::Resize()
@@ -612,6 +617,12 @@ void RocketSDLRenderInterface::ReleaseTexture(Rocket::Core::TextureHandle textur
 // Called by Rocket when it wants to render geometry that it does not wish to optimise.
 void RocketSDLRenderInterface::RenderGeometry(Rocket::Core::Vertex* vertices, int num_vertices, int* indices, int num_indices, const Rocket::Core::TextureHandle texture, const Rocket::Core::Vector2f& translation)
 {
+    // TODO: This is a hacky way to pass vertices, as SDL_Vertex was crafted to be just like Rocket::Core::Vertex.
+    // It works for now but it can explode at any moment if either SDL_Vertex or Rocket::Core::Vertex change.
+
+
+    assert(sizeof(SDL_Vertex) == sizeof(Rocket::Core::Vertex ));    // Some minor degree protection against future changes!
+
     SDL_RenderGeometry (renderer, (SDL_Texture*)texture, (SDL_Vertex *)vertices, num_vertices, indices, num_indices, (SDL_Vector2f*) &translation);
 }
 

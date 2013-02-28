@@ -32,6 +32,13 @@ ctypedef map[int,deque[Sprite_p]].iterator zmap_iterator
 SDL_WINDOWPOS_CENTERED_MASK = 0x2FFF0000
 SDL_WINDOWPOS_UNDEFINED_MASK = 0x1FFF0000
 
+
+cdef class RenderableComponent:
+    cdef bint render(self):
+        pass
+    cdef bint rawEvent(self, SDL_Event *event):
+        pass
+
 cdef class Renderer:
     def __init__(self, width=None, height=None, fullscreen = True, autoflip=True, **kwargs):
         cdef SDL_DisplayMode dm
@@ -176,11 +183,6 @@ cdef class Renderer:
         self._userCanZoom = False
         self._userCanScroll = False
 
-        #if ROCKET
-        self.rocket = Rocket()
-        self.rocket.init(self.renderer, self.window)
-        #endif
-
         # JPEG Turbo
         self.tjh = tjInitCompress()
 
@@ -316,6 +318,7 @@ cdef class Renderer:
         cdef deque[Sprite_p] *ds
         cdef deque[Sprite_p].iterator iter, iter_last
         cdef Sprite_p sprite
+        cdef RenderableComponent renderable
 
         self._processSprites(self.dirty)
         self.dirty = False
@@ -328,23 +331,20 @@ cdef class Renderer:
             iter_last = ds.end()
             while iter != iter_last:
                 sprite = deref(iter)
-                if sprite.show:
-                    SDL_SetTextureColorMod(sprite.texture, sprite.r, sprite.g, sprite.b)
-                    SDL_SetTextureAlphaMod(sprite.texture, sprite.a)
-                    SDL_RenderCopyEx(self.renderer, sprite.texture, &sprite._src, &sprite._dst, sprite.angle, &sprite.center, sprite.flip)
+                if sprite.texture:
+                    if sprite.show:
+                        SDL_SetTextureColorMod(sprite.texture, sprite.r, sprite.g, sprite.b)
+                        SDL_SetTextureAlphaMod(sprite.texture, sprite.a)
+                        SDL_RenderCopyEx(self.renderer, sprite.texture, &sprite._src, &sprite._dst, sprite.angle, &sprite.center, sprite.flip)
+                else:
+                    renderable = <RenderableComponent>sprite.component
+                    renderable.render()
+
                 inc(iter)
             inc (ziter)
 
         if self.renderWalkAreas:
             self._renderWalkAreas()
-
-
-#if ROCKET
-        self.rocket.update()
-        self.rocket.render()
-#endif
-
-
 
         # If remote screen is enabled, don't flip automatically, the gameloop will flip for us after it's taken the screenshot
         if self.autoflip:
@@ -375,11 +375,15 @@ cdef class Renderer:
                 inc(iter)
         return False
 
-    cdef _Sprite* _addSprite(self,  obj, bint interactive, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a):
+    cdef _Sprite* _addSprite(self,  obj, bint interactive, bint rawEvents, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a):
         cdef _Sprite sprite, *spritep
 
 
-        sprite.texture = canvas._surfacehw
+        if canvas is None:
+            sprite.texture = NULL
+        else:
+            sprite.texture = canvas._surfacehw
+
         sprite.src.x = sx
         sprite.src.y = sy
         sprite.src.w = sw
@@ -400,7 +404,13 @@ cdef class Renderer:
         sprite.dirty = True
         sprite.free = False
         sprite.interactive = interactive
-        sprite.component = <PyObject*> obj
+        sprite.rawEvents = rawEvents
+
+        if obj is not None:
+            sprite.component = <PyObject*> obj
+        else:
+            sprite.component = NULL
+
         Py_XINCREF(sprite.component)
 
 
@@ -416,9 +426,9 @@ cdef class Renderer:
 
         return spritep
 
-    cpdef Sprite addSprite(self,  obj, bint interactive, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a):
+    cpdef Sprite addSprite(self,  obj, bint interactive, bint rawEvents, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a):
         cdef Sprite sprite_wrap = Sprite()
-        sprite_wrap.sprite = self._addSprite(obj, interactive, canvas, z, sx, sy, sw, sh, dx, dy, dw, dh, angle, centerx, centery, flip, r, g, b, a)
+        sprite_wrap.sprite = self._addSprite(obj, interactive, rawEvents, canvas, z, sx, sy, sw, sh, dx, dy, dw, dh, angle, centerx, centery, flip, r, g, b, a)
         return sprite_wrap
 
     cdef bint _removeSprite(self, _Sprite *sprite):
@@ -638,6 +648,9 @@ cdef class Renderer:
 
     cpdef windowResized(self):
         """ The window was resized, update our internal w,h reference """
+        cdef _Sprite *sprite
+        cdef deque[_Sprite].iterator iter, iter_end
+
         screen_w = self._width
         screen_h = self._height
         SDL_GetWindowSize(self.window, &self._width, &self._height)
@@ -653,9 +666,14 @@ cdef class Renderer:
             #debug("windowResized: requesting new scroll point %dx%d" %(new_sx,new_sy))
             self.scrollTo(new_sx, new_sy)
 
-            #if ROCKET
-            self.rocket.resize(self._width, self._height)
-            #endif
+            iter = self.active_sprites.begin()
+            iter_last  = self.active_sprites.end()
+            while iter != iter_last:
+                sprite = &deref(iter)
+                if not sprite.free and sprite.component != NULL:
+                    obj = <object>sprite.component
+                    obj.event(EVENT_ETHEREAL_WINDOW_RESIZED, self._width, self._height)
+                inc(iter)
 
     cpdef scrollBy(self, int deltax, int deltay):
         """ Scroll the screen by deltax,deltay. deltax/y are in screen coordinates"""
@@ -762,9 +780,6 @@ cdef class Renderer:
                 SDL_DestroyWindow(self.window)
                 self.window = NULL
 
-#if ROCKET
-            self.rocket.free()
-#endif
             self.released = True
 
 
@@ -834,11 +849,11 @@ cdef class Renderer:
             while iter != iter_last:
                 sprite = deref(iter)
                 if sprite.interactive or ethereal:
-                    entity = <object>sprite.component
-                    continuePropagation, captureEvent = entity.event(action, scenePoint.x, scenePoint.y)
+                    component = <object>sprite.component
+                    continuePropagation, captureEvent = component.event(action, scenePoint.x, scenePoint.y)
                     if not ethereal:
                         if captureEvent:
-                            captor = entity
+                            captor = component
                             break
                         if not continuePropagation:
                             break
@@ -937,7 +952,22 @@ cdef class Renderer:
                 inc(walkAreasIt)
                 wav2 = wav1
 
+    cdef bint event(self, SDL_Event *event):
+        """
+        Pass raw SDL events to sprites that require them (Rocket for example)
+        :param sdlev: SDL event
+        """
+        cdef _Sprite *sprite
+        cdef deque[_Sprite].iterator iter, iter_end
 
+        iter = self.active_sprites.begin()
+        iter_last  = self.active_sprites.end()
+        while iter != iter_last:
+            sprite = &deref(iter)
+            if not sprite.free and sprite.rawEvents:
+                obj = <RenderableComponent>sprite.component
+                obj.rawEvent(event)
+            inc(iter)
 
 
 #OLD UPDATE ROUTINE THAT's DIRTY RECT BASED. KEPT HERE FOR FUTURE GENERATIONS ENJOYMENT ¿?

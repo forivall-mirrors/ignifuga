@@ -23,7 +23,7 @@ def find_cython():
         output = Popen(shlex.split(cmd), stderr=PIPE, stdout=PIPE).communicate()
         version = output[0].split('\n')[0] if output[0] != '' else output[1].split('\n')[0]
         v = re.search("(\d+)\.(\d+)(.*)", version)
-        # We are looking for 0.17 or higher
+        # We are looking for 0.18 or higher
         cython_ver = []
         counter = 0
         while True:
@@ -36,7 +36,7 @@ def find_cython():
             if cython_ver[0] > 0:
                 return cython
             if cython_ver[0] == 0:
-                if cython_ver[1] >= 17:
+                if cython_ver[1] >= 18:
                     return cython
     #            if v.group(1) == 16:
     #                if v.groups(2).startswith('1+') or v.groups(2) >= 2:

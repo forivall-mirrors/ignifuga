@@ -55,6 +55,7 @@ SOURCES['VORBIS'] = join(ROOT_DIR, 'external', 'libvorbis')
 SOURCES['TREMOR'] = join(ROOT_DIR, 'external', 'Tremor')
 SOURCES['TREMORLM'] = join(ROOT_DIR, 'external', 'Tremor-LM')
 SOURCES['LIBOGG'] = join(ROOT_DIR, 'external', 'libogg')
+SOURCES['SPINE'] = join(ROOT_DIR, 'external', 'spine', 'spine-cpp')
 
 ########################################################################################################################
 
@@ -282,6 +283,8 @@ def prepare_ignifuga(platform, pp, options, srcdir=SOURCES['IGNIFUGA']):
     excludes = ''
     if not options.rocket:
         excludes += '--exclude Rocket*'
+    if not options.spine:
+        excludes += '--exclude spine*'
 
     cmd = 'rsync -auqPm --exclude .svn %s --include "*/" --include "*.py" --include "*.pyx" --include "*.pxd" --include "*.h" --include "*.hpp" --include "*.inl" --include "*.c" --include "*.cpp" --exclude "*" %s/ %s' % (excludes, srcdir, target.builds.IGNIFUGA)
     Popen(shlex.split(cmd), cwd = srcdir).communicate()
@@ -304,6 +307,14 @@ def prepare_ignifuga(platform, pp, options, srcdir=SOURCES['IGNIFUGA']):
         cmd = 'rsync -auqPm %s/python/src/ %s' % (SOURCES['BOOST'], join(target.builds.IGNIFUGA, 'boost'))
         Popen(shlex.split(cmd), cwd = srcdir).communicate()
         cmd = 'rsync -auqPm %s/python/include/ %s' % (SOURCES['BOOST'], join(target.builds.IGNIFUGA, 'boost'))
+        Popen(shlex.split(cmd), cwd = srcdir).communicate()
+
+    # Copy Spine from external
+    if options.spine and not options.bare:
+        log("Preparing Spine source code")
+        cmd = 'rsync -auqPm --exclude spine-sfml* --exclude main.cpp %s/src/ %s' % (SOURCES['SPINE'], join(target.builds.IGNIFUGA, 'spine'))
+        Popen(shlex.split(cmd), cwd = srcdir).communicate()
+        cmd = 'rsync -auqPm --exclude spine-sfml* %s/includes/ %s' % (SOURCES['SPINE'], join(target.builds.IGNIFUGA, 'spine'))
         Popen(shlex.split(cmd), cwd = srcdir).communicate()
 
     preprocess_sources(pp, target.builds.IGNIFUGA)
@@ -510,6 +521,11 @@ def build_generic(options, platform, pp, env=None):
         pp.defines.append('ROCKET')
     else:
         pp.undefines.append('ROCKET')
+
+    if options.spine:
+        pp.defines.append('SPINE')
+    else:
+        pp.undefines.append('SPINE')
 
     if platform in ['intel_linux64', 'intel_linux32', 'mingw64', 'intel_mingw32', 'osx']:
         # Android/iOS has its own skeleton set up
@@ -858,6 +874,9 @@ if __name__ == '__main__':
     parser.add_option("--disable-rocket",
         action="store_false", dest="rocket", default=True,
         help="Disable LibRocket integration (by default it is integrated)")
+    parser.add_option("--disable-spine",
+                      action="store_false", dest="spine", default=True,
+                      help="Disable Spine integration (by default it is integrated)")
     parser.add_option("--enable-valgrind",
         action="store_true", dest="valgrind", default=False,
         help="Create a Valgrind friendly build (although much slower)")

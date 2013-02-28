@@ -25,7 +25,7 @@ def prepare(env, target, options, ignifuga_src, python_build):
     else:
         sdlflags = get_sdl_flags(target).replace('-lpthread', '').replace('-ldl', '') # Removing pthread and dl to make them dynamically bound (req'd for Linux)
         freetypeflags = get_freetype_flags(target)
-        ignifuga_module = "\n%s %s -I%s -Wl,-Bstatic -lturbojpeg -lSDL2_ttf -lSDL2_image -lSDL2_mixer -lvorbisfile -lvorbis -logg -lSDL2 -lpng12 -ljpeg %s %s\n" % (options.modulename, ' '.join(ignifuga_src),target.builds.IGNIFUGA, sdlflags, freetypeflags)
+        ignifuga_module = "\n%s %s -I%s -I%s -Wl,-Bstatic -lturbojpeg -lSDL2_ttf -lSDL2_image -lSDL2_mixer -lvorbisfile -lvorbis -logg -lSDL2 -lpng12 -ljpeg %s %s\n" % (options.modulename, ' '.join(ignifuga_src),target.builds.IGNIFUGA, join(target.builds.IGNIFUGA, 'spine'), sdlflags, freetypeflags)
 
     # For Linux we build our own libgc, because currently Ubuntu is marking libgc-dev:amd64 and libgc-dev:i386 as conflicting,
     # so we can't build a 32 bits version from a 64 bits system using the system provided library.

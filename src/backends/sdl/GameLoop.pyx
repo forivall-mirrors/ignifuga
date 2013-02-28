@@ -137,9 +137,7 @@ cdef class GameLoop(GameLoopBase):
         cdef SDL_UserEvent *uev
         cdef PyObject *pycb
 
-        #if ROCKET
-        self.renderer.rocket.PushSDLEvent(sdlev)
-        #endif
+        self.renderer.event(sdlev)
 
         if sdlev.type == SDL_QUIT:
             Gilbert().endLoop()

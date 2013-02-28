@@ -16,6 +16,7 @@ from libcpp.vector cimport *
 from ignifuga.backends.sdl.SDL cimport *
 from ignifuga.backends.sdl.Canvas cimport Canvas
 from ignifuga.backends.sdl.Renderer cimport Renderer, _Sprite as _RendererSprite
+from ignifuga.backends.GameLoopBase cimport EventType, EVENT_TOUCH_DOWN, EVENT_TOUCH_UP, EVENT_TOUCH_MOTION, EVENT_TOUCH_LAST, EVENT_ETHEREAL_ZOOM_IN, EVENT_ETHEREAL_ZOOM_OUT, EVENT_ETHEREAL_SCROLL
 
 
 ctypedef enum SPRITE_TYPE:
@@ -85,8 +86,8 @@ cdef class _SpriteComponent:
     cpdef hide(self)
     cpdef reload(self, url)
     cdef _doCompositing(self)
-    cpdef event(self, action, sx, sy)
-    cdef _updateSize(self)
+    cpdef event(self, EventType action, int sx, int sy)
+    cdef updateSize(self)
     cpdef hits(self, x, y)
     cpdef addOverlay(self, id, int x=?, int y=?, int z=?, float r=?, float g=?, float b=?, float a=?, int op=?, bint update=?)
     cpdef removeOverlay(self, int zindex, bint update=?)

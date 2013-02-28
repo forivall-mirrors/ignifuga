@@ -15,6 +15,7 @@ cdef public enum EventType:
     EVENT_ETHEREAL_ZOOM_IN = 5
     EVENT_ETHEREAL_ZOOM_OUT = 6
     EVENT_ETHEREAL_SCROLL = 7
+    EVENT_ETHEREAL_WINDOW_RESIZED = 8
 
 from cpython cimport *
 from libc.stdlib cimport *
