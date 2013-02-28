@@ -86,8 +86,6 @@ cdef class _RocketComponent:
             self.updateSize()
 
     cpdef updateSize(self):
-        cdef int w, h
-
         if self.renderer is not None:
             if self.sizeType == 'window':
                 # width and height are a percentage of the window size
@@ -101,7 +99,6 @@ cdef class _RocketComponent:
                 self._width_src = self._width_pre = self._width if self._width != None else 0
                 self._height_src = self._height_pre = self._height if self._height != None else 0
 
-            print "new size", self._width_pre, self._height_pre
             self.rocketCtx.SetDimensions(Vector2i(self._width_pre, self._height_pre))
 
     cpdef show(self):
@@ -109,7 +106,8 @@ cdef class _RocketComponent:
             self.doc.Show(FOCUS)
 
         if self._rendererSprite == NULL and self._active:
-            self._rendererSprite = self.renderer._addSprite(self, self.interactive, True, None,
+            # TODO: Make libRocket and this component support and x,y position different from 0,0 (so it can behave as a sprite does)
+            self._rendererSprite = self.renderer._addSprite(self, self.interactive, True, self._float, None,
                 self._z,
                 0, 0, self._width_src, self._height_src,
                 self._x, self._y, self._width_pre, self._height_pre,
@@ -139,7 +137,8 @@ class RocketComponent(Viewable, _RocketComponent):
             'fonts': [],
             'pQuery': None,
             'sizeType': 'window', # window, scene, [px, None]
-            '_actions': []
+            '_actions': [],
+            '_float': True
         })
 
         super(RocketComponent, self).__init__(id, entity, active, frequency, **data)
@@ -229,6 +228,22 @@ class RocketComponent(Viewable, _RocketComponent):
                 self.show()
             else:
                 self.hide()
+
+
+    @Viewable.x.setter
+    def x(self, new_x):
+        #TODO: Allow RocketComponents that don't float and that can be moved from 0,0
+        Viewable.x.fset(self, 0)
+
+    @Viewable.y.setter
+    def y(self, new_y):
+        #TODO: Allow RocketComponents that don't float and that can be moved from 0,0
+        Viewable.y.fset(self, 0)
+
+    @Viewable.float.setter
+    def float(self, new_float):
+        #TODO: Allow RocketComponents that don't float and that can be moved from 0,0
+        Viewable.float.fset(self, True)
 
     def updateSize(self):
         _RocketComponent.updateSize(self)

@@ -65,6 +65,7 @@ class Viewable(Component):
             '_scrollx': 0,      # Keep track of the renderer scroll for parallax functionality
             '_scrolly': 0,
             'interactive': False,
+            '_float': False
         })
         super(Viewable, self).__init__( id, entity, active, frequency, **data)
 
@@ -247,6 +248,14 @@ class Viewable(Component):
         # Set the internal height, the precomputed _height_pre is updated with updateSize
         self._height = value
         self.updateSize()
+
+    @property
+    def float(self):
+        return self._float
+
+    @float.setter
+    def float(self, value):
+        self._float = value
 
     def getRect(self):
         """ Get the x,y,w,h rectangle the node occupies in scene coordinates """

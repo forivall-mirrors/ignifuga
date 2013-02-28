@@ -247,16 +247,18 @@ cdef class Renderer:
 
                 # dst_r is in scene coordinates, we will adjust it to screen coordinates
                 # Now we apply the scale factor
-                if doScale:
-                    #Scale the dst_r values
-                    dst_r.x = <int>(dst_r.x * self._scale_x)
-                    dst_r.w = <int>(dst_r.w * self._scale_x)
-                    dst_r.y = <int>(dst_r.y * self._scale_y)
-                    dst_r.h = <int>(dst_r.h * self._scale_y)
+                if not sprite.floating:
+                    if doScale:
+                        #Scale the dst_r values
+                        dst_r.x = <int>(dst_r.x * self._scale_x)
+                        dst_r.w = <int>(dst_r.w * self._scale_x)
+                        dst_r.y = <int>(dst_r.y * self._scale_y)
+                        dst_r.h = <int>(dst_r.h * self._scale_y)
 
-                # Apply scrolling
-                dst_r.x -= self._scroll_x
-                dst_r.y -= self._scroll_y
+                        # Apply scrolling
+                        dst_r.x -= self._scroll_x
+                        dst_r.y -= self._scroll_y
+
                 if src_r.w > 0 and src_r.h >0 and dst_r.w>0 and dst_r.h > 0:
                     sprite._src = src_r
                     sprite._dst = dst_r
@@ -266,14 +268,16 @@ cdef class Renderer:
     @cython.cdivision(True)
     cdef void _processSprites(self, bint all) nogil:
         cdef int i, numsprites
-        cdef SDL_Rect screen
+        cdef SDL_Rect screen, screen_
         cdef bint doScale = 0
         cdef Sprite_p sprite
 
+        screen_.x = screen_.y = 0
+
         screen.x = self._scroll_x
         screen.y = self._scroll_y
-        screen.w = self._width
-        screen.h = self._height
+        screen_.w = screen.w = self._width
+        screen_.h = screen.h = self._height
 
         # Apply the overall scale setting if needed.
         if self._scale_x != 1.0 or self._scale_y != 1.0:
@@ -294,8 +298,12 @@ cdef class Renderer:
         for i in prange(numsprites, nogil=True):
             sprite = &self.active_sprites.at(i)
             if not sprite.free and (all or sprite.dirty):
-                self._processSprite(sprite, &screen, doScale)
+                if sprite.floating:
+                    self._processSprite(sprite, &screen_, doScale)
+                else:
+                    self._processSprite(sprite, &screen, doScale)
                 sprite.dirty = False
+
 #        cdef deque[Sprite].iterator iter, iter_last
 #        iter = self.active_sprites.begin()
 #        iter_last  = self.active_sprites.end()
@@ -375,7 +383,7 @@ cdef class Renderer:
                 inc(iter)
         return False
 
-    cdef _Sprite* _addSprite(self,  obj, bint interactive, bint rawEvents, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a):
+    cdef _Sprite* _addSprite(self,  obj, bint interactive, bint rawEvents, bint floating, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a):
         cdef _Sprite sprite, *spritep
 
 
@@ -405,6 +413,7 @@ cdef class Renderer:
         sprite.free = False
         sprite.interactive = interactive
         sprite.rawEvents = rawEvents
+        sprite.floating = floating
 
         if obj is not None:
             sprite.component = <PyObject*> obj
@@ -426,9 +435,9 @@ cdef class Renderer:
 
         return spritep
 
-    cpdef Sprite addSprite(self,  obj, bint interactive, bint rawEvents, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a):
+    cpdef Sprite addSprite(self,  obj, bint interactive, bint rawEvents, bint floating, Canvas canvas, int z, int sx, int sy, int sw, int sh, int dx, int dy, int dw, int dh, double angle, int centerx, int centery, int flip, float r, float g, float b, float a):
         cdef Sprite sprite_wrap = Sprite()
-        sprite_wrap.sprite = self._addSprite(obj, interactive, rawEvents, canvas, z, sx, sy, sw, sh, dx, dy, dw, dh, angle, centerx, centery, flip, r, g, b, a)
+        sprite_wrap.sprite = self._addSprite(obj, interactive, rawEvents, floating, canvas, z, sx, sy, sw, sh, dx, dy, dw, dh, angle, centerx, centery, flip, r, g, b, a)
         return sprite_wrap
 
     cdef bint _removeSprite(self, _Sprite *sprite):
@@ -493,11 +502,12 @@ cdef class Renderer:
         sprite.dirty = True
         return True
 
-    cdef bint _spriteDst(self, _Sprite *sprite, int x, int y, int w, int h) nogil:
+    cdef bint _spriteDst(self, _Sprite *sprite, int x, int y, int w, int h, bint floating) nogil:
         sprite.dst.x = x
         sprite.dst.y = y
         sprite.dst.w = w
         sprite.dst.h = h
+        sprite.floating = floating
         sprite.dirty = True
         return True
 
@@ -505,9 +515,9 @@ cdef class Renderer:
         sprite.interactive = interactive
         return True
 
-    cpdef bint spriteDst(self, Sprite sprite_w, int x, int y, int w, int h):
+    cpdef bint spriteDst(self, Sprite sprite_w, int x, int y, int w, int h, bint floating):
         cdef _Sprite *sprite = sprite_w.sprite
-        return self._spriteDst(sprite, x, y, w, h)
+        return self._spriteDst(sprite, x, y, w, h, floating)
 
     cpdef bint spriteRot(self, Sprite sprite_w, double angle, int centerx, int centery, int flip):
         cdef _Sprite *sprite = sprite_w.sprite
@@ -850,7 +860,10 @@ cdef class Renderer:
                 sprite = deref(iter)
                 if sprite.interactive or ethereal:
                     component = <object>sprite.component
-                    continuePropagation, captureEvent = component.event(action, scenePoint.x, scenePoint.y)
+                    if sprite.floating:
+                        continuePropagation, captureEvent = component.event(action, x, y)
+                    else:
+                        continuePropagation, captureEvent = component.event(action, scenePoint.x, scenePoint.y)
                     if not ethereal:
                         if captureEvent:
                             captor = component

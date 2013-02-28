@@ -182,7 +182,7 @@ cdef class _SpriteComponent:
             self.parent._doCompositing()
         elif self._rendererSprite != NULL:
             self.renderer._spriteSrc(self._rendererSprite, 0, 0, self._width_src, self._height_src)
-            self.renderer._spriteDst(self._rendererSprite, <int>self.x, <int>self.y, self._width_pre, self._height_pre)
+            self.renderer._spriteDst(self._rendererSprite, <int>self.x, <int>self.y, self._width_pre, self._height_pre, self._float)
             self.renderer._spriteRot(self._rendererSprite,
                 self._angle,
                 self._center[0] if self._center != None else self._width_pre / 2,
@@ -384,7 +384,7 @@ cdef class _SpriteComponent:
     cpdef show(self):
         if self._rendererSprite == NULL and self._active and self._canvas != None:
             self.updateSize()
-            self._rendererSprite = self.renderer._addSprite(self, self.interactive, False, self._canvas,
+            self._rendererSprite = self.renderer._addSprite(self, self.interactive, False, self._float, self._canvas,
                 self._z,
                 0, 0, self._width_src, self._height_src,
                 self._x, self._y, self._width_pre, self._height_pre,
@@ -653,8 +653,15 @@ class Sprite(Viewable, _SpriteComponent):
             else:
                 self.hide()
 
+    @Viewable.float.setter
+    def float(self, new_float):
+        Viewable.float.fset(self, new_float)
+        self.updateRenderer()
+
     def update(self, now, **data):
         self._update(now)
+
+
 
 cdef class _Sprite:
     """ Internal sprite implementation with animation"""
