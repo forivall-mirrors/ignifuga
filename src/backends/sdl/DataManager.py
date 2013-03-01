@@ -85,14 +85,7 @@ class DataManager(DataManagerBase):
 
     def loadFile(self, url):
         if url not in self.cache:
-            data = readFile(join(ROOT_DIR, url))
-            ret_data = {}
-            for k,v in data.items():
-                key, value = sanitizeData(k,v)
-                ret_data[key] = value
-
-            self.cache[url] = ret_data
-
+            self.cache[url] = readFile(join(ROOT_DIR, url))
             #if DEBUG and (__LINUX__ or __OSX__ or __MINGW__)
             watchURL = self._urlToWatchUrl(url)
             if watchURL not in self.watches:

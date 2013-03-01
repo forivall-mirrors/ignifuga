@@ -23,17 +23,17 @@ cdef class _SpineComponent(RenderableComponent):
 
     cpdef init(self):
         self.renderer = <Renderer>Gilbert().renderer
-        self.load()
+        self.loadSpine()
 
     cpdef free(self):
         if not self.released:
-            self.unload()
+            self.unloadSpine()
             del self.atlas
             del self.skeleton
             self.released = True
 
     cpdef update(self, unsigned long now):
-        self.animation.apply(<BaseSkeleton*>self.skeleton, now, True)
+        self.animation.apply(<BaseSkeleton*>self.skeleton, now/1000.0, True)
         self.skeleton.updateWorldTransform()
 
     cdef bint render(self):
@@ -66,31 +66,32 @@ cdef class _SpineComponent(RenderableComponent):
             self.renderer._removeSprite(self._rendererSprite)
             self._rendererSprite = NULL
 
-    cpdef load(self):
+    cpdef loadSpine(self):
         cdef SkeletonJson *sj
         cdef bytes data
         cdef char *strdata
 
-        data = bytes(Gilbert().dataManager.loadFile(self.atlasFile))
+        data = bytes(Gilbert().dataManager.loadFile(str(self.atlasFile)))
         strdata = data
         self.atlas = new Atlas(self.renderer.renderer, strdata, strdata + strlen(strdata))
 
         sj = new SkeletonJson(self.atlas)
 
-        data = bytes(Gilbert().dataManager.loadFile(self.skeletonFile))
+        data = bytes(Gilbert().dataManager.loadFile(str(self.skeletonFile)))
         strdata = data
         self.skeletonData = sj.readSkeletonData(strdata, strdata + strlen(strdata))
 
-        data = bytes(Gilbert().dataManager.loadFile(self.animationFile))
+        data = bytes(Gilbert().dataManager.loadFile(str(self.animationFile)))
         strdata = data
         self.animation = sj.readAnimation(strdata, strdata + strlen(strdata), self.skeletonData)
 
         self.skeleton = new Skeleton(self.skeletonData)
-        # skeleton->flipX = false;
-        # skeleton->flipY = false;
+        self.skeleton.flipX = False
+        self.skeleton.flipY = False
         self.skeleton.setToBindPose()
-        self.skeleton.getRootBone().x = 200
-        self.skeleton.getRootBone().y = 420
+
+        self.rootBoneX(self._x)
+        self.rootBoneY(self._y)
 
         del sj
 
@@ -98,7 +99,7 @@ cdef class _SpineComponent(RenderableComponent):
         Gilbert().dataManager.addListener(self.skeletonFile, self)
         Gilbert().dataManager.addListener(self.animationFile, self)
 
-    cpdef unload(self):
+    cpdef unloadSpine(self):
         del self.atlas
         self.atlas = NULL
         del self.skeletonData
@@ -108,6 +109,15 @@ cdef class _SpineComponent(RenderableComponent):
         Gilbert().dataManager.removeListener(self.atlasFile, self)
         Gilbert().dataManager.removeListener(self.skeletonFile, self)
         Gilbert().dataManager.removeListener(self.animationFile, self)
+
+    cpdef rootBoneX(self, float x):
+        if self.skeleton != NULL:
+            self.skeleton.getRootBone().x = x
+
+    cpdef rootBoneY(self, float y):
+        if self.skeleton != NULL:
+            self.skeleton.getRootBone().y = y
+
 
 
 
@@ -143,8 +153,8 @@ class Spine(Viewable, _SpineComponent):
         _SpineComponent.update(self, now)
 
     def reload(self, url):
-        self.unload()
-        self.load()
+        self.unloadSpine()
+        self.loadSpine()
         if self._visible:
             self.show()
 
@@ -161,10 +171,12 @@ class Spine(Viewable, _SpineComponent):
     @Viewable.x.setter
     def x(self, new_x):
         Viewable.x.fset(self, new_x)
+        self.rootBoneX(self._x)
 
     @Viewable.y.setter
     def y(self, new_y):
         Viewable.y.fset(self, new_y)
+        self.rootBoneY(self._y)
 
     @Viewable.float.setter
     def float(self, new_float):
