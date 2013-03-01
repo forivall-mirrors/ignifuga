@@ -92,6 +92,7 @@ cdef class GameLoopBase(object):
         self.loading_tmp = new deque[_Task]()
         self.running = new deque[_Task]()
         self.running_tmp = new deque[_Task]()
+        self.deferreds = new deque[_Task]()
 
         PyGreenlet_Import()
         self.main_greenlet = PyGreenlet_GetCurrent()
@@ -102,7 +103,7 @@ cdef class GameLoopBase(object):
         else:
             self.remoteConsole = remoteConsole
             self.updateRemoteConsole = True
-            self.startRunnable(self.remoteConsole, False, self.remoteConsole.process)
+            self.startRunnable(self.remoteConsole, 'run', self.remoteConsole.process)
 
         if self.enableRemoteScreen:
             debug("Opening remote screen on IP %s PORT %d" % (ip, port))
@@ -151,12 +152,19 @@ cdef class GameLoopBase(object):
                 self.taskDecRef(task)
                 inc(iter)
 
+            iter = self.deferreds.begin()
+            while iter != self.deferreds.end():
+                task = &deref(iter)
+                self.taskDecRef(task)
+                inc(iter)
+
             Py_CLEAR(self.main_greenlet)
 
             del self.loading
             del self.loading_tmp
             del self.running
             del self.running_tmp
+            del self.deferreds
 
             self.released = True
 
@@ -174,13 +182,17 @@ cdef class GameLoopBase(object):
             self._interval = 1000 / fps
 
     cpdef startEntity(self, entity, bint load_phase=True):
-        self.startRunnable(entity, load_phase)
+        self.startRunnable(entity, 'load' if load_phase else 'run')
 
     cpdef startComponent(self, component):
         """ Components hit the ground running, their initialization was handled by their entity"""
-        self.startRunnable(component, False)
+        self.startRunnable(component, 'run')
 
-    cdef startRunnable(self, entity, bint load_phase=True, runnable=None):
+    cpdef deferred(self, runnable, data=None):
+        """ Run a one off runnable """
+        self.startRunnable(None, 'deferred', runnable, data)
+
+    cdef startRunnable(self, entity, phase='load', runnable=None, data = None):
         """ Put an entity in the loading or running queue"""
         cdef _Task new_task, *taskp
 
@@ -191,22 +203,29 @@ cdef class GameLoopBase(object):
 
         # Note: Got to do this assignment with an intermediary object, otherwise Cython just can't take it!
         if runnable is None:
-            if load_phase:
+            if phase == 'load':
                 runnable = entity.init
             else:
                 runnable = entity.update
 
         new_task.runnable = <PyObject*>runnable
-        new_task.data = NULL
         Py_XINCREF(new_task.runnable)
-        new_task.greenlet = PyGreenlet_New(new_task.runnable, self.main_greenlet )
+        if data is not None:
+            new_task.data = <PyObject*>data
+            Py_XINCREF(new_task.data)
+        else:
+            new_task.data = NULL
 
         # We don't directly add new tasks to self.loading or self.running to avoid invalidating iterators or pointers in self.update
         # Instead, we add them to a temporary list which will be processed in self.update.
-        if load_phase:
+        if phase == 'load':
+            new_task.greenlet = PyGreenlet_New(new_task.runnable, self.main_greenlet )
             self.loading_tmp.push_back(new_task)
-        else:
+        elif phase == 'run':
+            new_task.greenlet = PyGreenlet_New(new_task.runnable, self.main_greenlet )
             self.running_tmp.push_back(new_task)
+        elif phase == 'deferred':
+            self.deferreds.push_back(new_task)
 
         del runnable
 
@@ -253,6 +272,18 @@ cdef class GameLoopBase(object):
         cdef deque[_Task].iterator iter, iter_end
         cdef PyObject *entity
         cdef bint task_ret
+
+        # Run one off deferreds
+        while self.deferreds.size() > 0:
+            taskp = &self.deferreds.back()
+            runnable = <object> taskp.runnable
+            if taskp.data != NULL:
+                data = <object> taskp.data
+                runnable(data)
+            else:
+                runnable()
+            self.taskDecRef(taskp)
+            self.deferreds.pop_back()
 
         # Add loading and running tasks from the temporary queues
         while self.loading_tmp.size() > 0:

@@ -95,6 +95,9 @@ class DataManagerBase(object):
                 error('Error: Releasing data for %s with ref count: %d' % (url, refCnt))
             del self.cache[url]
 
+    def loadFile(self, name):
+        raise Exception('method not implemented')
+
     def loadJsonFile(self, name):
         raise Exception('method not implemented')
 

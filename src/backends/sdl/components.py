@@ -9,8 +9,9 @@
 # Author: Gabriel Jacobo <gabriel@mdqinc.com>
 
 from ignifuga.backends.sdl.Sound import Sound, Music
-from ignifuga.backends.sdl.Rocket import RocketComponent
+from ignifuga.backends.sdl.Rocket import Rocket
 from ignifuga.backends.sdl.Sprite import Sprite as Sprite
+from ignifuga.backends.sdl.Spine import Spine
 
-class Rocket(RocketComponent):
-    pass
+# class Rocket(RocketComponent):
+#     pass

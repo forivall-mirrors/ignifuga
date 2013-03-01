@@ -7,7 +7,9 @@
 # Spine component
 # Author: Gabriel Jacobo <gabriel@mdqinc.com>
 
-from SDL cimport SDL_Renderer
+from ignifuga.backends.sdl.SDL cimport *
+from ignifuga.backends.sdl.Renderer cimport Renderer, RenderableComponent, _Sprite as _RendererSprite
+from ignifuga.backends.GameLoopBase cimport EventType, EVENT_ETHEREAL_WINDOW_RESIZED
 
 cdef extern from "spine-sdl2/spine.h" namespace "spine":
     cdef cppclass Atlas:
@@ -22,8 +24,24 @@ cdef extern from "spine-sdl2/spine.h" namespace "spine":
     cdef cppclass Animation:
         void apply (BaseSkeleton *skeleton, float time, bint loop)
 
-    cdef cppclass Bone:
+    cdef cppclass BoneData:
         pass
+
+    cdef cppclass Bone:
+        BoneData *data
+        Bone *parent
+        float x, y
+        float rotation
+        float scaleX, scaleY
+
+        float m00, m01, worldX
+        float m10, m11, worldY
+        float worldRotation
+        float worldScaleX, worldScaleY
+
+        Bone (BoneData *data) except +
+        void setToBindPose ()
+        void updateWorldTransform (bint flipX, bint flipY)
 
     cdef cppclass SkeletonJson:
         SkeletonJson (Atlas *atlas) except +
@@ -46,8 +64,8 @@ cdef extern from "spine-sdl2/spine.h" namespace "spine":
 
         void draw (SDL_Renderer *renderer)
 
-        # Bone *getRootBone ();
-        # Bone* findBone (const std::string &boneName)
+        Bone *getRootBone ()
+        #Bone* findBone (const std::string &boneName)
         # int findBoneIndex (const std::string &boneName)
         #
         # Slot* findSlot (const std::string &slotName)
@@ -59,3 +77,25 @@ cdef extern from "spine-sdl2/spine.h" namespace "spine":
         # Attachment* getAttachment (const std::string &slotName, const std::string &attachmentName);
         # Attachment* getAttachment (int slotIndex, const std::string &attachmentName);
         # void setAttachment (const std::string &slotName, const std::string &attachmentName);
+
+
+cdef class _SpineComponent(RenderableComponent):
+    cdef bint released
+    cdef _RendererSprite *_rendererSprite
+    cdef Renderer renderer
+    cdef Skeleton *skeleton
+    cdef SkeletonData *skeletonData
+    cdef Animation *animation
+    cdef Atlas *atlas
+
+    cpdef init(self)
+    cpdef free(self)
+    cpdef update(self, unsigned long now)
+    cpdef show(self)
+    cpdef hide(self)
+    cdef bint render(self)
+    cdef bint rawEvent(self, SDL_Event *event)
+    cpdef event(self, EventType action, int sx, int sy)
+    cpdef updateSize(self)
+    cpdef load(self)
+    cpdef unload(self)

@@ -77,7 +77,7 @@ cdef class GameLoopBase(object):
     cdef public bint quit, paused, freezeRenderer, released
     cdef public double _fps
     cdef str platform
-    cdef deque[_Task] *loading, *loading_tmp, *running, *running_tmp
+    cdef deque[_Task] *loading, *loading_tmp, *running, *running_tmp, *deferreds
     cdef readonly unsigned long frame_time, _interval, ticks_second
     cdef PyGreenlet *main_greenlet
     cdef bint updateRemoteConsole
@@ -88,7 +88,8 @@ cdef class GameLoopBase(object):
 
     cpdef startEntity(self, entity, bint load_phase=*)
     cpdef startComponent(self, component)
-    cdef startRunnable(self, entity, bint load_phase=*, runnable=*)
+    cpdef deferred(self, runnable, data=*)
+    cdef startRunnable(self, entity, phase=*, runnable=*, data=*)
     cpdef bint stopEntity(self, entity)
     cpdef bint stopComponent(self, component)
     cpdef update(self, unsigned long now=*, bint wrapup=*)

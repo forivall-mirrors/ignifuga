@@ -101,7 +101,7 @@ class Entity(object):
         won't be garbage collected. It should be only called from __del__ or unregister """
 
         if self._released:
-            error("Node %s released more than once" % self.id)
+            error("Entity %s released more than once" % self.id)
 
         self._data = {}
         self.scene = None
@@ -116,7 +116,6 @@ class Entity(object):
         self._properties = {}
         self._released = True
         self._initialComponents = []
-
 
     def __str__(self):
         return "Entity with ID %s (%s)" % (self.id,hash(self))

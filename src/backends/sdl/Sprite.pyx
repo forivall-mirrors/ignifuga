@@ -66,7 +66,8 @@ cdef class _SpriteComponent:
             self.setOverlays(self._data['overlays'])
 
         self.updateSize()
-        self.show()
+        if self._visible:
+            self.show()
 
     cpdef free(self):
         self.hide()

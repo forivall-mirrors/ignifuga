@@ -25,7 +25,6 @@ cdef class _RocketComponent:
     cpdef init(self):
         # Initialize Rocket
         cdef bytes name
-        cdef Renderer renderer
         self.renderer = <Renderer>Gilbert().renderer
 
         debug('Starting Rocket Instance')
@@ -43,20 +42,24 @@ cdef class _RocketComponent:
 
     cpdef free(self):
         if not self.released:
-            RocketFree(self.rocketCtx)
+            self._unloadDocument()
+            if self.rocketCtx != NULL:
+                RocketFree(self.rocketCtx)
+                self.rocketCtx = NULL
             self.released = True
 
     cpdef _loadDocument(self, filename):
         cdef bytes bFilename = bytes(filename)
         # TODO: Load this through the DataManager and use Rocket's LoadDocumentFromMemory
-        self.doc = self.rocketCtx.LoadDocument( String(<char*>bFilename) )
+        if self.rocketCtx != NULL:
+            self.doc = self.rocketCtx.LoadDocument( String(<char*>bFilename) )
 
     cpdef loadFont(self, filename):
         cdef bytes bFilename = bytes(filename)
         LoadFontFace(String(<char*>bFilename))
 
     cpdef _unloadDocument(self):
-        if self.doc != NULL:
+        if self.doc != NULL and self.rocketCtx != NULL:
             self.rocketCtx.UnloadDocument(self.doc)
             self.doc.Close()
             self.doc = NULL
@@ -71,15 +74,20 @@ cdef class _RocketComponent:
         return None
 
     cpdef update(self, now):
-        self.rocketCtx.Update()
+        if self.rocketCtx:
+            self.rocketCtx.Update()
 
     cdef bint render(self):
-        self.rocketCtx.Render()
-        return True
+        if self.rocketCtx:
+            self.rocketCtx.Render()
+            return True
+        return False
 
     cdef bint rawEvent(self, SDL_Event *event):
-        InjectRocket(self.rocketCtx, event[0])
-        return True
+        if not self.released and self.doc != NULL:
+            InjectRocket(self.rocketCtx, event[0])
+            return True
+        return False
 
     cpdef event(self, EventType action, int sx, int sy):
         if action == EVENT_ETHEREAL_WINDOW_RESIZED:
@@ -125,7 +133,7 @@ cdef class _RocketComponent:
             self.renderer._removeSprite(self._rendererSprite)
             self._rendererSprite = NULL
 
-class RocketComponent(Viewable, _RocketComponent):
+class Rocket(Viewable, _RocketComponent):
     """ A viewable component based on a Rocket document wrapper"""
     PROPERTIES = Viewable.PROPERTIES + []
     def __init__(self, id=None, entity=None, active=True, frequency=15.0,  **data):
@@ -141,12 +149,11 @@ class RocketComponent(Viewable, _RocketComponent):
             '_float': True
         })
 
-        super(RocketComponent, self).__init__(id, entity, active, frequency, **data)
+        super(Rocket, self).__init__(id, entity, active, frequency, **data)
         _RocketComponent.__init__(self)
 
     def init(self, **data):
         """ Initialize the required external data """
-        self.renderer = Gilbert().renderer
         _RocketComponent.init(self)
 
         for font in self.fonts:
@@ -155,16 +162,21 @@ class RocketComponent(Viewable, _RocketComponent):
         self.unloadDocument()
         self.loadDocument(self.file)
 
-        super(RocketComponent, self).init(**data)
+        super(Rocket, self).init(**data)
 
         self.updateSize()
-        self.show()
+        if self._visible:
+            self.show()
 
-    def free(self, **kwargs):
-        self.hide()
-        self.unloadDocument()
-        Gilbert().dataManager.removeListener(self.file, self)
-        super(RocketComponent, self).free(**kwargs)
+    def free(self, immediate = False, **kwargs):
+        if immediate:
+            self.hide()
+            _RocketComponent.free(self)
+            super(Rocket, self).free(**kwargs)
+        else:
+            # By default we don't kill the component immediately because the chain of events that led here may have
+            # been triggered by a Rocket component event (TL;DR: Removing the context immediately would cause a crash).
+            Gilbert().gameLoop.deferred(self.free, True)
 
     def update(self, now, **data):
         _RocketComponent.update(self, now)
@@ -212,6 +224,7 @@ class RocketComponent(Viewable, _RocketComponent):
             del self.docCtx['_']
             self.docCtx = None
 
+        Gilbert().dataManager.removeListener(self.file, self)
 
     def reload(self, url):
         self.unloadDocument()

@@ -83,6 +83,24 @@ class DataManager(DataManagerBase):
         url = join('data','scenes',filename+'.json')
         return url, self.loadJsonFile(url)
 
+    def loadFile(self, url):
+        if url not in self.cache:
+            data = readFile(join(ROOT_DIR, url))
+            ret_data = {}
+            for k,v in data.items():
+                key, value = sanitizeData(k,v)
+                ret_data[key] = value
+
+            self.cache[url] = ret_data
+
+            #if DEBUG and (__LINUX__ or __OSX__ or __MINGW__)
+            watchURL = self._urlToWatchUrl(url)
+            if watchURL not in self.watches:
+                Gilbert().gameLoop.addWatch(watchURL)
+                self.watches.append(watchURL)
+            #endif
+        return self.cache[url]
+
     def loadJsonFile(self, url):
         if url not in self.cache:
             data = json.loads(readFile(join(ROOT_DIR, url)))

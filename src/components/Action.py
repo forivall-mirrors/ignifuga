@@ -183,7 +183,7 @@ class Action(Component):
         else:
             from ignifuga.Entity import Entity
             from ignifuga.Scene import Scene
-            from ignifuga.backends.sdl.components import RocketComponent
+            from ignifuga.backends.sdl.components import Rocket
             from ignifuga.pQuery import pQuery
 
             if isinstance(self.entity, Scene):
@@ -226,7 +226,7 @@ class Action(Component):
                             raise Exception('Action target %s not found' % target)
                     else:
                         raise Exception('Action target %s not found' % target)
-            elif isinstance(self.entity, RocketComponent):
+            elif isinstance(self.entity, Rocket):
                 self._type = Action.TYPE_ROCKET
                 # Targets can be document element objects or pQuery selectors
                 for target in targets:
@@ -283,8 +283,8 @@ class Action(Component):
 
         if not self._running:
             if self._root:
-                from ignifuga.backends.sdl.components import RocketComponent
-                if isinstance(entity, RocketComponent) or isinstance(self._entity, RocketComponent):
+                from ignifuga.backends.sdl.components import Rocket
+                if isinstance(entity, Rocket) or isinstance(self._entity, Rocket):
                     # We are assigning a component (this Action) to another component (the Rocket document)
                     # This is technically outside the entity->components model, but as we want to use the same codebase
                     # to work on entities and on Rocket document elements, we do some minor hacking here.

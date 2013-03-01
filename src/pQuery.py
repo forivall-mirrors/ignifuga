@@ -1281,12 +1281,12 @@ def pQuery(selector, context = None):
     if isinstance(selector, rocket.Element):
         return pQueryWrapperRocket([selector,], pQueryWrapper.TYPE_ROCKET, selector.owner_document.parent)
 
-    from ignifuga.backends.sdl.components import RocketComponent
-    if isinstance(selector, RocketComponent):
+    from ignifuga.backends.sdl.components import Rocket
+    if isinstance(selector, Rocket):
         return pQueryWrapperRocket([selector.document,], pQueryWrapper.TYPE_ROCKET, selector)
     #endif
 
-    # Check this after checking for RocketComponent
+    # Check this after checking for Rocket
     if isinstance(selector, Component):
         return pQueryWrapper([selector,], pQueryWrapper.TYPE_IGNIFUGA, selector.entity)
 
