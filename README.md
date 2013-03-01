@@ -27,7 +27,8 @@ Features
     * Text (with TTF font support)
     * Sound (with ogg support)
     * Music (with ogg support)
-* libRocket integration, build your GUI using HTML+CSS!
+* [Spine](http://esotericsoftware.com/) integration, 2D skeletal based animations
+* [libRocket](http://librocket.com/) integration, build your GUI using HTML+CSS!
 * Remote Python Console via RFoo integration, connect remotely to a running instance of Ignifuga and experiment with your game interactively in real time.
 * Remote Websockets Console: Alternatively, you can use the Remote Console with regular sockets (i.e. via Telnet) or with websockets (using javascript from a web browser).
 * pQuery, our own version of jQuery for Python, that works on Ignifuga Scenes/Entities/Components and Rocket RML Elements using the exact same syntax.
