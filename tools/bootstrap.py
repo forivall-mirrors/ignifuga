@@ -20,6 +20,8 @@ from copy import deepcopy
 from subprocess import Popen, PIPE
 import tempfile
 from optparse import OptionParser
+from os import stat
+
 
 #ROOT_DIR = abspath(join(dirname(sys.argv[0]), '..'))
 ANDROID_NDK_URL = {'Linux': 'http://dl.google.com/android/ndk/android-ndk-r8-linux-x86.tar.bz2',
@@ -137,7 +139,8 @@ def install_mac_ports(prefix=None):
     if prefix is None:
         prefix = join(os.getenv('HOME'), 'macports')
 
-    if check_tool('port', False) is None:
+    port_path = check_tool('port', False)
+    if port_path is None:
         # Try with the prefix path
         env = deepcopy(os.environ)
         os.environ['PATH'] = '%(prefix)s/bin:%(prefix)s/bin:%(prev_path)s' % {'prefix': prefix, 'prev_path': env['PATH'] if 'PATH' in env else ''}
@@ -201,11 +204,9 @@ def install_mac_ports(prefix=None):
                     f.write("export PATH=%s\n" % os.environ['PATH'])
                     f.write("export MANPATH=%s\n" % os.environ['MANPATH'])
                     f.write("export PERL5LIB=%s\n" % os.environ['PERL5LIB'])
-        else:
-            print 'Could not download Mac Ports source. Please install manually and try again'
-            exit(1)
-    else:
-        print 'Mac Ports is available'
+
+    print 'Mac Ports is available at %s' % port_path
+    return port_path
 
 def get_build_platform():
     # Check the host distro
@@ -251,11 +252,15 @@ if __name__ == '__main__':
                       help="MacPorts installation path: ~/macports")
         parser.add_option("--sudo-ports",
                           action="store_true", dest="sudoport", default=False,
-                          help="Install Mac Ports packages using sudo")
+                          help="Force install Mac Ports packages using sudo (only use if autodetection fails)")
 
 
     (options, args) = parser.parse_args()
 
+    # Protect against running as sudo
+    if os.getuid() == 0:
+        print "Don't run this script as root or using sudo"
+        exit(1)
 
     if system == 'Linux':
         print 'I need to install the following development packages and build dependencies:'
@@ -278,10 +283,18 @@ if __name__ == '__main__':
             cmd = 'sudo apt-get -y install ' + base_pkgs
             Popen(shlex.split(cmd)).communicate()
     elif system == 'Darwin':
-        if options.sudoport:
-            PORT_CMD = 'sudo ' + PORT_CMD
         check_xcode()
-        install_mac_ports(options.macports_prefix)
+        port_path = install_mac_ports(options.macports_prefix)
+
+        # Crudely determine if Mac Ports is installed as root
+        if stat(port_path).st_uid == 0:
+            print "Running Mac Ports using sudo"
+            PORT_CMD = 'sudo ' + PORT_CMD
+        else:
+            if options.sudoport:
+                print "Running Mac Ports using sudo"
+                PORT_CMD = 'sudo ' + PORT_CMD
+
         print 'Updating Mac Ports'
         cmd = PORT_CMD + 'selfupdate'
         Popen(shlex.split(cmd)).communicate()
