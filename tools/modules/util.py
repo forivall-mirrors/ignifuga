@@ -157,6 +157,7 @@ def validate_android_api_level(level, ANDROID_SDK):
         error("Invalid Android API Level, please provide an integer >= 10")
         exit()
 
+    # API level 9 has been deprecated, level 10 is the lowest one where the NDK supports OpengGL ES/ES2
     if api_level < 10:
         error("Invalid Android Target API Level Selected (it has to be >=10)")
         exit()
@@ -181,7 +182,7 @@ def validate_android_api_level(level, ANDROID_SDK):
 
     if not api_level_valid:
         if available_targets:
-            error("You don't have the API Level SDK files for the android-%d target (Currently available levels: %s). Please run the %s tool and install it from there" % (api_level, ' '.join(available_targets), tool))
+            error("You don't have the API Level SDK files for the android-%d target (Currently available levels: %s). Please run the %s tool and install it from there" % (api_level, ', '.join(available_targets).replace('android-', '').replace('"', ''), tool))
         else:
             error("You don't have any API Level SDK files. Please run the %s tool and install it from there" % (tool,))
         exit()

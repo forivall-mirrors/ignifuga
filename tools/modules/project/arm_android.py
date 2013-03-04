@@ -40,6 +40,8 @@ def make(options, env, target, sources, cython_src, cfiles):
     #Popen(shlex.split(cmd), cwd = jni_src).communicate()
     cmd = SED_CMD + "'s|\[\[PROJECT_NAME\]\]|%s|g' %s" % (options.project, join(android_project, 'AndroidManifest.xml'))
     Popen(shlex.split(cmd), cwd = jni_src).communicate()
+    cmd = SED_CMD + "'s|\[\[TARGET\]\]|%s|g' %s" % (env['API_LEVEL'], join(android_project, 'AndroidManifest.xml'))
+    Popen(shlex.split(cmd), cwd = jni_src).communicate()
     cmd = SED_CMD + "'s|\[\[PROJECT_NAME\]\]|%s|g' %s" % (options.project, join(android_project, 'src', 'IgnifugaActivity.java'))
     Popen(shlex.split(cmd), cwd = jni_src).communicate()
     cmd = SED_CMD + "'s|\[\[PROJECT_NAME\]\]|%s|g' %s" % (options.project, join(android_project, 'src', 'SDLActivity.wallpaper.java'))

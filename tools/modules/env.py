@@ -242,6 +242,7 @@ def prepare_arm_android_env(target, pp=None, openmp=False, api_level=10, gcc='4.
         error("Invalid Android API Level, please provide an integer >= 10")
         exit()
 
+    # API level 9 has been deprecated, level 10 is the lowest one where the NDK supports OpengGL ES/ES2
     if api_level < 10:
         error("Invalid Android Target API Level Selected (it has to be >=10)")
         exit()
@@ -294,19 +295,35 @@ def prepare_arm_android_env(target, pp=None, openmp=False, api_level=10, gcc='4.
     env['NDK'] = ANDROID_NDK
     env['STL'] = 'gnu'
     env['TARGET'] = apitarget
+    env['API_LEVEL'] = str(api_level)
 
 
     #env['ARCH'] = "armeabi-v7a"
-    if api_level > 13:
-        env['SYSROOT'] = "%s/platforms/android-14/arch-arm" % ANDROID_NDK
-    elif api_level > 9:
-        env['SYSROOT'] = "%s/platforms/android-9/arch-arm" % ANDROID_NDK
-    else:
-        error("INVALID API LEVEL")
-        exit()
+    # According to http://stackoverflow.com/questions/6970155/android-missing-ndk-platforms not all platforms will be listed in the NDK
+    # So, we use an ad hoc map to figure out which version we need to use.
+    # TODO: This needs to be updated every once in a while when new versions of the SDK come out
+    ndk_api_level_map = {
+        3: 3,
+        4: 4,
+        5: 5,
+        6: 5,
+        7: 5,
+        8: 8,
+        9: 9,
+        10: 9,
+        11: 9,
+        12: 9,
+        13: 9,
+        14: 14,
+        15: 14,
+        16: 14,
+        17: 14
+    }
+
+    env['SYSROOT'] = "%s/platforms/android-%d/arch-arm" % (ANDROID_NDK, ndk_api_level_map[api_level])
 
     if not isdir(env['SYSROOT']):
-        error("Could not find platform files at %s" % env['SYSROOT'])
+        error("Could not find platform files at %s. Make sure the API level %d SDK is installed" % (env['SYSROOT'], api_level))
         exit()
 
     env['CFLAGS'] ="-DANDROID -mandroid -fomit-frame-pointer --sysroot %s -I%s/include" % (env['SYSROOT'], target.dist)
