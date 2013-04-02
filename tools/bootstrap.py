@@ -195,7 +195,8 @@ def install_mac_ports(prefix=None):
                 os.environ['PERL5LIB'] = '%(prefix)s/lib/perl5/5.8.8:%(prefix)s/lib/perl5/vendor_perl/5.8.8:%(prev_path)s' % {'prefix': prefix, 'prev_path': env['PERL5LIB'] if 'PERL5LIB' in env else ''}
 
                 # Check if it all worked
-                if check_tool('port', False) is None:
+                port_path = check_tool('port', False)
+                if port_path is None:
                     print 'There was a problem installing Mac Ports. Please install manually and try again.'
                     exit(1)
 
