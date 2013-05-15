@@ -217,7 +217,8 @@ def get_build_platform():
         distro_name, distro_version, distro_id = platform.linux_distribution()
     elif system == 'Darwin':
         distro_name, distro_version, distro_id = platform.mac_ver()
-    return platform.processor(), system, arch, distro_name, distro_version, distro_id
+    processor = platform.processor() or 'i386'
+    return processor, system, arch, distro_name, distro_version, distro_id
 
 
 

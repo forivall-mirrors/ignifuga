@@ -24,6 +24,7 @@ def find_cython():
         version = output[0].split('\n')[0] if output[0] != '' else output[1].split('\n')[0]
         v = re.search("(\d+)\.(\d+)(.*)", version)
         # We are looking for 0.18 or higher
+        # Cython 0.19 is blacklisted, the engine doesn't compile with it
         cython_ver = []
         counter = 0
         while True:
@@ -36,14 +37,11 @@ def find_cython():
             if cython_ver[0] > 0:
                 return cython
             if cython_ver[0] == 0:
-                if cython_ver[1] >= 18:
+                if cython_ver[1] >= 18 and (cython_ver[1] != 19):
                     return cython
-    #            if v.group(1) == 16:
-    #                if v.groups(2).startswith('1+') or v.groups(2) >= 2:
-    #                    return cython
         except:
             pass
-        error ('Cython version %s is incompatible' % version)
+        error ('Cython version %s is incompatible (>=0.18 required, 0.19 is currently blacklisted)' % version)
     return None
 
 def check_tool(tool, fatal=True):
@@ -195,7 +193,7 @@ def check_host_tools():
     if system == 'Linux':
         if processor == 'x86_64':
             if distro_name == 'Ubuntu':
-                if distro_id in ['precise', 'quantal']:
+                if distro_id in ['precise', 'quantal', 'raring']:
                     supported_platform = True
     elif system == 'Darwin':
         if arch == '64bit':
@@ -322,7 +320,8 @@ def get_build_platform():
         distro_name, distro_version, distro_id = platform.linux_distribution()
     elif system == 'Darwin':
         distro_name, distro_version, distro_id = platform.mac_ver()
-    return platform.processor(), system, arch, distro_name, distro_version, distro_id
+    processor = platform.processor() or "i386"
+    return processor, system, arch, distro_name, distro_version, distro_id
 
 def get_available_platforms():
     """ Determine which build platforms are available depending on which platform we are building """
