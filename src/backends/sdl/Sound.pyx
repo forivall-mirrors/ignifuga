@@ -10,6 +10,7 @@ from ignifuga.Log import debug, error
 from ignifuga.Gilbert import Gilbert
 from ignifuga.components.Component import Component
 from ignifuga.Task import STOP
+from cpython cimport PyObject, Py_XINCREF, Py_XDECREF
 
 channelMap = {}
 musicPlayer = None

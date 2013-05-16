@@ -7,8 +7,7 @@
 # SDL Sprite component
 # Author: Gabriel Jacobo <gabriel@mdqinc.com>
 
-
-from cpython cimport *
+from cpython cimport PyObject
 from libcpp.deque cimport *
 from libcpp.map cimport *
 from libcpp.pair cimport *

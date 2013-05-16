@@ -16,8 +16,7 @@ from libc.string cimport *
 from libcpp.map cimport *
 from libcpp.deque cimport *
 from libcpp.pair cimport *
-from cpython cimport *
-
+from cpython cimport PyObject
 
 cdef class RenderableComponent:
     cdef bint render(self)

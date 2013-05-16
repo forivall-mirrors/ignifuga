@@ -22,8 +22,8 @@ from cython.operator cimport dereference as deref, preincrement as inc #derefere
 from cython.parallel cimport parallel, prange, threadid
 cimport cython
 import sys
-from cpython cimport *
 from ignifuga.Scene cimport _Scene, _WalkAreaVertex, WalkAreaVertexIterator, WalkAreaVertexDeque
+from cpython cimport Py_CLEAR, Py_XINCREF, Py_XDECREF, PyObject
 
 ctypedef unsigned long ULong
 ctypedef deque[Sprite_p].iterator deque_Sprite_iterator

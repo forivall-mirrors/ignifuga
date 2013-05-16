@@ -7,7 +7,6 @@
 # Sound components - SDL_mixer based
 
 from ignifuga.backends.sdl.SDL cimport *
-from cpython cimport *
 from libcpp.map cimport *
 
 cdef initializeSound()

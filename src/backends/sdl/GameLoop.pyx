@@ -13,7 +13,6 @@
 
 from ignifuga.Gilbert import Gilbert
 from ignifuga.Log import debug, error
-import time, sys
 
 DEF NUM_STREAMS = 20
 

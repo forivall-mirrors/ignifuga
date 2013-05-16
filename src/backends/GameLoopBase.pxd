@@ -17,7 +17,7 @@ cdef public enum EventType:
     EVENT_ETHEREAL_SCROLL = 7
     EVENT_ETHEREAL_WINDOW_RESIZED = 8
 
-from cpython cimport *
+from cpython cimport PyObject, Py_XDECREF
 from libc.stdlib cimport *
 from libc.string cimport *
 from libcpp.map cimport *

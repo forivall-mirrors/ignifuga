@@ -11,7 +11,6 @@ from libc.string cimport *
 from libcpp.map cimport *
 from libcpp.deque cimport *
 from libcpp.pair cimport *
-from cpython cimport *
 from ignifuga.Scene cimport _Scene, _WalkAreaVertex, WalkAreaVertexIterator, WalkAreaVertexDeque
 
 cdef extern from "math.h":

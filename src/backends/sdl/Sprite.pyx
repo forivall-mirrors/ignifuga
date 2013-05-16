@@ -14,7 +14,7 @@ import sys
 from cython.operator cimport dereference as deref, preincrement as inc
 from base64 import b64decode
 from ignifuga.Log import error
-
+from cpython cimport Py_XINCREF, Py_XDECREF, PyObject
 
 cdef class _SpriteComponent:
     def __init__(self):

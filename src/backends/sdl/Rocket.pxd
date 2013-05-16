@@ -10,8 +10,7 @@
 from ignifuga.backends.sdl.SDL cimport *
 from ignifuga.backends.sdl.Renderer cimport Renderer, RenderableComponent, _Sprite as _RendererSprite
 from ignifuga.backends.GameLoopBase cimport EventType, EVENT_ETHEREAL_WINDOW_RESIZED
-from cpython cimport *
-
+from cpython cimport PyObject
 
 cdef extern from "Rocket/Core/ElementDocument.h" namespace "Rocket::Core::ElementDocument":
     ctypedef enum FocusFlags:

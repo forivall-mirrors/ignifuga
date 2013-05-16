@@ -13,6 +13,7 @@ from ignifuga.components.Viewable import Viewable
 from ignifuga.backends.sdl.Renderer cimport Renderer
 from ignifuga.Gilbert import Gilbert
 from ignifuga.pQuery import pQuery
+from cpython cimport Py_XINCREF, Py_XDECREF, PyObject
 
 cdef class _RocketComponent:
     """ A Rocket context and document wrapper"""

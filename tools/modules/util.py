@@ -22,9 +22,8 @@ def find_cython():
         cmd = '%s -V' % cython
         output = Popen(shlex.split(cmd), stderr=PIPE, stdout=PIPE).communicate()
         version = output[0].split('\n')[0] if output[0] != '' else output[1].split('\n')[0]
-        v = re.search("(\d+)\.(\d+)(.*)", version)
+        v = re.search("(\d+)\.(\d+)\.*(.*)", version)
         # We are looking for 0.18 or higher
-        # Cython 0.19 is blacklisted, the engine doesn't compile with it
         cython_ver = []
         counter = 0
         while True:
@@ -37,11 +36,13 @@ def find_cython():
             if cython_ver[0] > 0:
                 return cython
             if cython_ver[0] == 0:
-                if cython_ver[1] >= 18 and (cython_ver[1] != 19):
-                    return cython
+                if cython_ver[1] >= 18:
+                    # Cython 0.19 is blacklisted, the engine doesn't compile with it
+                    if cython_ver not in [ [0,19], ]:
+                        return cython
         except:
             pass
-        error ('Cython version %s is incompatible (>=0.18 required, 0.19 is currently blacklisted)' % version)
+        error ('Cython version %s is incompatible (>=0.18 required, 0.19.0 is blacklisted)' % version)
     return None
 
 def check_tool(tool, fatal=True):

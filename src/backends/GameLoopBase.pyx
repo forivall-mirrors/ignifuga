@@ -10,6 +10,7 @@
 
 # xcython: profile=True
 from cython.operator cimport dereference as deref, preincrement as inc #dereference and increment operators
+from cpython cimport Py_CLEAR, Py_XINCREF, Py_XDECREF, PyObject
 from ignifuga.Gilbert import Gilbert
 from ignifuga.Log import debug, error
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer

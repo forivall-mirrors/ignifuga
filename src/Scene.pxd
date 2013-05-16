@@ -13,7 +13,6 @@ from libc.string cimport *
 from libcpp.map cimport *
 from libcpp.deque cimport *
 from libcpp.pair cimport *
-from cpython cimport *
 
 cdef struct _WalkAreaVertex:
     int x
