@@ -55,7 +55,7 @@ SOURCES['VORBIS'] = join(ROOT_DIR, 'external', 'libvorbis')
 SOURCES['TREMOR'] = join(ROOT_DIR, 'external', 'Tremor')
 SOURCES['TREMORLM'] = join(ROOT_DIR, 'external', 'Tremor-LM')
 SOURCES['LIBOGG'] = join(ROOT_DIR, 'external', 'libogg')
-SOURCES['SPINE'] = join(ROOT_DIR, 'external', 'spine', 'spine-cpp')
+SOURCES['SPINE'] = join(ROOT_DIR, 'external', 'spine')
 
 ########################################################################################################################
 
@@ -312,9 +312,17 @@ def prepare_ignifuga(platform, pp, options, srcdir=SOURCES['IGNIFUGA']):
     # Copy Spine from external
     if options.spine and not options.bare:
         log("Preparing Spine source code")
-        cmd = 'rsync -auqPm --exclude spine-sfml* --exclude main.cpp %s/src/ %s' % (SOURCES['SPINE'], join(target.builds.IGNIFUGA, 'spine'))
+
+        # Spine C code
+        cmd = 'rsync -auqPm %s/src/spine %s' % (join(SOURCES['SPINE'], 'spine-c'), join(target.builds.IGNIFUGA, 'spine'))
         Popen(shlex.split(cmd), cwd = srcdir).communicate()
-        cmd = 'rsync -auqPm --exclude spine-sfml* %s/includes/ %s' % (SOURCES['SPINE'], join(target.builds.IGNIFUGA, 'spine'))
+
+        # Spine headers code
+        cmd = 'rsync -auqPm %s/include/spine %s' % (join(SOURCES['SPINE'], 'spine-c'), join(target.builds.IGNIFUGA, 'spine'))
+        Popen(shlex.split(cmd), cwd = srcdir).communicate()
+
+        # Spine SDL2 glue code
+        cmd = 'rsync -auqPm %s/src/spine %s' % (join(SOURCES['SPINE'], 'spine-sdl2'), join(target.builds.IGNIFUGA, 'spine'))
         Popen(shlex.split(cmd), cwd = srcdir).communicate()
 
     preprocess_sources(pp, target.builds.IGNIFUGA)
@@ -466,7 +474,7 @@ def cythonize(build_dir, package_name, options, skip=[]):
     # We have to flatten CPP files as well, because this will all be compiled using Python's build system
     # which is "flat structure" oriented, ie all .o files end up in python/Modules
 
-    for f in locate('*.cpp', build_dir, [cython_src, join(build_dir, 'android_project')]):
+    for f in locate(['*.cpp', '*.c'], build_dir, [cython_src, join(build_dir, 'android_project')]):
         if f not in cfiles:
             d = f[len(build_dir)+1:].replace(os.sep, '+')
             cfile = join(cython_src, d)

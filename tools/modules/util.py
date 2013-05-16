@@ -282,15 +282,19 @@ def check_host_tools():
 def locate(pattern, root=os.curdir, skip = []):
     '''Locate all files matching supplied filename pattern in and below
     supplied root directory.'''
+    if isinstance(pattern, str):
+        pattern = [pattern,]
+
     for path, dirs, files in os.walk(os.path.abspath(root)):
-        for filename in fnmatch.filter(files, pattern):
-            yieldit = True
-            for s in skip:
-                if path.startswith(s):
-                    yieldit = False
-                    break
-            if yieldit:
-                yield os.path.join(path, filename)
+        for p in pattern:
+            for filename in fnmatch.filter(files, p):
+                yieldit = True
+                for s in skip:
+                    if path.startswith(s):
+                        yieldit = False
+                        break
+                if yieldit:
+                    yield os.path.join(path, filename)
 
 def get_sdl_flags(target):
     cmd = join(target.dist, 'bin', 'sdl2-config' ) + ' --cflags'

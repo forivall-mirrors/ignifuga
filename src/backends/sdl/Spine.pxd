@@ -11,25 +11,14 @@ from ignifuga.backends.sdl.SDL cimport *
 from ignifuga.backends.sdl.Renderer cimport Renderer, RenderableComponent, _Sprite as _RendererSprite
 from ignifuga.backends.GameLoopBase cimport EventType, EVENT_ETHEREAL_WINDOW_RESIZED
 
-cdef extern from "spine-sdl2/spine.h" namespace "spine":
-    cdef cppclass Atlas:
-        Atlas (SDL_Renderer *r, const char *begin, const char *end) except +
+cdef extern from "spine/spine.h":
+    ctypedef struct Atlas
+    ctypedef struct SkeletonJson
+    ctypedef struct SkeletonData
+    ctypedef struct AnimationStateData
+    ctypedef struct AnimationState
 
-    cdef cppclass SkeletonData:
-        pass
-
-    cdef cppclass BaseSkeleton:
-        pass
-
-    cdef cppclass Animation:
-        void apply (BaseSkeleton *skeleton, float time, bint loop)
-
-    cdef cppclass BoneData:
-        pass
-
-    cdef cppclass Bone:
-        BoneData *data
-        Bone *parent
+    ctypedef struct Bone:
         float x, y
         float rotation
         float scaleX, scaleY
@@ -39,54 +28,43 @@ cdef extern from "spine-sdl2/spine.h" namespace "spine":
         float worldRotation
         float worldScaleX, worldScaleY
 
-        Bone (BoneData *data) except +
-        void setToBindPose ()
-        void updateWorldTransform (bint flipX, bint flipY)
-
-    cdef cppclass SkeletonJson:
-        SkeletonJson (Atlas *atlas) except +
-        SkeletonData* readSkeletonData (const char *begin, const char *end)
-        Animation* readAnimation (const char *begin, const char *end, const SkeletonData *skeletonData)
-        float scale
-        bint flipY
-
-    cdef cppclass Skeleton:
-        Skeleton (SkeletonData *skeletonData)
-        SkeletonData *data
+    ctypedef struct Skeleton:
         float r, g, b, a
         float time
         bint flipX, flipY
+        Bone* root
 
-        void updateWorldTransform ()
-        void setToBindPose ()
-        void setBonesToBindPose ()
-        void setSlotsToBindPose ()
+    cdef Atlas* Atlas_readAtlasFile(char *path, void *param)
+    cdef SkeletonJson* SkeletonJson_create(Atlas*)
+    cdef SkeletonData* SkeletonJson_readSkeletonDataFile(SkeletonJson*, char*)
+    cdef void SkeletonJson_dispose(SkeletonJson*)
+    cdef AnimationStateData* AnimationStateData_create(SkeletonData*)
+    cdef void AnimationStateData_setMixByName(AnimationStateData*, char*, char*, float)
+    cdef void AnimationState_setAnimationByName (AnimationState* self, char* animationName, bint loop)
+    cdef void AnimationState_addAnimationByName (AnimationState* self, char* animationName, bint loop, float delay)
+    cdef void Skeleton_setToSetupPose(Skeleton*)
+    cdef void Skeleton_updateWorldTransform(Skeleton*)
+    cdef void SkeletonData_dispose(SkeletonData*)
+    cdef void Atlas_dispose(Atlas*)
 
+cdef extern from "spine/spine-sdl2.h" namespace "spine":
+    cdef cppclass SkeletonDrawable:
+        void SkeletonDrawable(SkeletonData*, AnimationStateData*)
+        Skeleton* skeleton
+        AnimationState* state
+        float timeScale
+        void update (Uint64 now)
         void draw (SDL_Renderer *renderer)
-
-        Bone *getRootBone ()
-        #Bone* findBone (const std::string &boneName)
-        # int findBoneIndex (const std::string &boneName)
-        #
-        # Slot* findSlot (const std::string &slotName)
-        # int findSlotIndex (const std::string &slotName)
-        #
-        # void setSkin (const std::string &skinName)
-        # void setSkin (Skin *newSkin)
-        #
-        # Attachment* getAttachment (const std::string &slotName, const std::string &attachmentName);
-        # Attachment* getAttachment (int slotIndex, const std::string &attachmentName);
-        # void setAttachment (const std::string &slotName, const std::string &attachmentName);
-
 
 cdef class _SpineComponent(RenderableComponent):
     cdef bint released
     cdef _RendererSprite *_rendererSprite
     cdef Renderer renderer
-    cdef Skeleton *skeleton
+
+    cdef Atlas* atlas
     cdef SkeletonData *skeletonData
-    cdef Animation *animation
-    cdef Atlas *atlas
+    cdef SkeletonDrawable *drawable
+    #cdef AnimationStateData* stateData
 
     cpdef init(self)
     cpdef free(self)

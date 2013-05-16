@@ -16,7 +16,6 @@ cdef class _SpineComponent(RenderableComponent):
         self.released = False
         self._rendererSprite = NULL
         self.renderer = None
-        self.skeleton = NULL
 
     def __dealloc__(self):
         self.free()
@@ -28,16 +27,13 @@ cdef class _SpineComponent(RenderableComponent):
     cpdef free(self):
         if not self.released:
             self.unloadSpine()
-            del self.atlas
-            del self.skeleton
             self.released = True
 
     cpdef update(self, unsigned long now):
-        self.animation.apply(<BaseSkeleton*>self.skeleton, now/1000.0, True)
-        self.skeleton.updateWorldTransform()
+        self.drawable.update(now)
 
     cdef bint render(self):
-        self.skeleton.draw(self.renderer.renderer)
+        self.drawable.draw(self.renderer.renderer)
 
     cdef bint rawEvent(self, SDL_Event *event):
         pass
@@ -70,55 +66,62 @@ cdef class _SpineComponent(RenderableComponent):
         cdef SkeletonJson *sj
         cdef bytes data
         cdef char *strdata
+        cdef SkeletonJson* json
+        cdef Skeleton* skeleton
+        cdef AnimationStateData* stateData
 
-        data = bytes(Gilbert().dataManager.loadFile(str(self.atlasFile)))
-        strdata = data
-        self.atlas = new Atlas(self.renderer.renderer, strdata, strdata + strlen(strdata))
+        self.atlas = Atlas_readAtlasFile(self.atlasFile, self.renderer.renderer)
+        json = SkeletonJson_create(self.atlas)
+        self.skeletonData = SkeletonJson_readSkeletonDataFile(json, self.skeletonFile)
+        SkeletonJson_dispose(json)
 
-        sj = new SkeletonJson(self.atlas)
+        stateData = AnimationStateData_create(self.skeletonData)
+        AnimationStateData_setMixByName(stateData, "walk", "jump", 0.2)
+        AnimationStateData_setMixByName(stateData, "jump", "walk", 0.4)
 
-        data = bytes(Gilbert().dataManager.loadFile(str(self.skeletonFile)))
-        strdata = data
-        self.skeletonData = sj.readSkeletonData(strdata, strdata + strlen(strdata))
+        self.drawable = new SkeletonDrawable(self.skeletonData, stateData)
+        self.drawable.timeScale = 1
 
-        data = bytes(Gilbert().dataManager.loadFile(str(self.animationFile)))
-        strdata = data
-        self.animation = sj.readAnimation(strdata, strdata + strlen(strdata), self.skeletonData)
+        skeleton = self.drawable.skeleton
+        skeleton.flipX = False
+        skeleton.flipY = False
+        Skeleton_setToSetupPose(skeleton)
 
-        self.skeleton = new Skeleton(self.skeletonData)
-        self.skeleton.flipX = False
-        self.skeleton.flipY = False
-        self.skeleton.setToBindPose()
+        skeleton.root.x = self._x
+        skeleton.root.y = self._y
+        Skeleton_updateWorldTransform(skeleton)
 
-        self.rootBoneX(self._x)
-        self.rootBoneY(self._y)
-
-        del sj
+        AnimationState_setAnimationByName(self.drawable.state, "walk", True)
+        AnimationState_addAnimationByName(self.drawable.state, "jump", False, 0)
+        AnimationState_addAnimationByName(self.drawable.state, "walk", True, 0)
+        AnimationState_addAnimationByName(self.drawable.state, "jump", False, 3)
+        AnimationState_addAnimationByName(self.drawable.state, "walk", True, 0)
+        AnimationState_addAnimationByName(self.drawable.state, NULL, True, 0)
+        AnimationState_addAnimationByName(self.drawable.state, "walk", False, 1)
 
         Gilbert().dataManager.addListener(self.atlasFile, self)
         Gilbert().dataManager.addListener(self.skeletonFile, self)
-        Gilbert().dataManager.addListener(self.animationFile, self)
 
     cpdef unloadSpine(self):
-        del self.atlas
-        self.atlas = NULL
-        del self.skeletonData
+        SkeletonData_dispose(self.skeletonData)
         self.skeletonData = NULL
-        del self.animation
-        self.animation = NULL
+
+        Atlas_dispose(self.atlas)
+        self.atlas = NULL
+
+        del self.drawable
+        self.drawable = NULL
+
         Gilbert().dataManager.removeListener(self.atlasFile, self)
         Gilbert().dataManager.removeListener(self.skeletonFile, self)
-        Gilbert().dataManager.removeListener(self.animationFile, self)
 
     cpdef rootBoneX(self, float x):
-        if self.skeleton != NULL:
-            self.skeleton.getRootBone().x = x
+        if self.drawable != NULL:
+             self.drawable.skeleton.root.x = x
 
     cpdef rootBoneY(self, float y):
-        if self.skeleton != NULL:
-            self.skeleton.getRootBone().y = y
-
-
+        if self.drawable != NULL:
+            self.drawable.skeleton.root.y = y
 
 
 class Spine(Viewable, _SpineComponent):
@@ -128,8 +131,7 @@ class Spine(Viewable, _SpineComponent):
         # Default values
         self._loadDefaults({
             'atlasFile': None,
-            'skeletonFile': None,
-            'animationFile': None
+            'skeletonFile': None
         })
 
         super(Spine, self).__init__(id, entity, active, frequency, **data)
