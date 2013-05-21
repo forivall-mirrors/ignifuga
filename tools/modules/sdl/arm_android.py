@@ -104,10 +104,8 @@ def make(env, target, options):
         exit()
 
     # Build libjpeg-turbo
-    if isfile(join(jni_dir, 'jpeg', 'libturbojpeg.a')):
-        os.remove(join(jni_dir, 'jpeg', 'libturbojpeg.a'))
-    if isfile(join(jni_dir, 'jpeg', 'libjpeg.a')):
-        os.remove(join(jni_dir, 'jpeg', 'libjpeg.a'))
+    cmd = 'rm -rf %s ' % join(jni_dir, 'jpeg')
+    Popen(shlex.split(cmd), cwd = target.builds.JPGTURBO, env=env).communicate()
 
     if not isfile(join(target.builds.JPGTURBO, 'Makefile')):
         cmd = './configure --enable-silent-rules LDFLAGS="-static-libgcc" LIBTOOL= --host=arm-eabi --build=i686-pc-linux-gnu --disable-shared --enable-static --prefix="%s" --includedir="%s" --libdir="%s"'% (jni_dir,join(jni_dir, 'jpeg'), join(jni_dir, 'jpeg'))
@@ -116,7 +114,7 @@ def make(env, target, options):
     cmd = 'make -j%d install V=0 ' % ncpu
     Popen(shlex.split(cmd), cwd = target.builds.JPGTURBO, env=env).communicate()
 
-    if isfile(join(jni_dir, 'jpeg', 'libturbojpeg.a')) and isfile(join(jni_dir, 'jpeg', 'libjpeg.a')) :
+    if isfile(join(jni_dir, 'jpeg', 'libturbojpeg.a')) and isfile(join(jni_dir, 'jpeg', 'libjpeg.a')) and isfile(join(jni_dir, 'jpeg', 'jpeglib.h')):
         log('libjpeg-turbo built successfully')
     else:
         error('Problem building libjpeg-turbo')

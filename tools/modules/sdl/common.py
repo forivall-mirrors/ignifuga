@@ -91,7 +91,7 @@ def make_common(env, target, options, libs=['zlib', 'png', 'jpeg', 'sdl', 'sdl_i
         cmd = 'make -j%d install V=0 ' % ncpu
         Popen(shlex.split(cmd), cwd = target.builds.JPGTURBO, env=env).communicate()
 
-        if isfile(join(target.dist, 'lib', 'libturbojpeg.a')) and isfile(join(target.dist, 'lib', 'libjpeg.a')) :
+        if isfile(join(target.dist, 'lib', 'libturbojpeg.a')) and isfile(join(target.dist, 'lib', 'libjpeg.a')) and isfile(join(target.dist, 'lib', 'jpeglib.h')):
             log('libjpeg-turbo built successfully')
         else:
             error('Problem building libjpeg-turbo')
