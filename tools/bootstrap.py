@@ -116,6 +116,10 @@ def check_xcode():
         print 'Can not detect XCode, please install it'
         exit()
 
+    if check_tool('make', False) == None:
+        print 'Can not detect XCode Command Line Tools, Open XCode Menu -> Preferences -> Downloads -> Click Install on Command Line Tools'
+        exit()
+
     # Check that we have at least one SDK for Desktop, iOS and iOS simulator
     sdk = find_apple_sdk('macosx', 10, 6)
     if sdk is None:
@@ -267,7 +271,6 @@ if __name__ == '__main__':
     if system == 'Linux':
         print 'I need to install the following development packages and build dependencies:'
         base_pkgs = 'mercurial git-core rsync python-dev mingw-w64 g++-mingw-w64 mingw-w64-tools make gcc-4.6 automake autoconf openjdk-6-jdk gcc-multilib g++-multilib libx11-dev wget nasm libxext-dev libxinerama-dev mesa-common-dev libusb-1.0-0-dev libasound2-dev libpulse-dev libtool ant'
-        print base_pkgs
         if processor == 'x86_64':
             if options.noi386:
                 cmd = 'sudo apt-get -y install ' + base_pkgs

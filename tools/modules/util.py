@@ -92,6 +92,10 @@ def check_xcode():
         error('Can not detect XCode, please install it')
         exit()
 
+    if check_tool('make', False) == None:
+        print 'Can not detect XCode Command Line Tools, Open XCode Menu -> Preferences -> Downloads -> Click Install on Command Line Tools'
+        exit()
+
     # Check that we have at least one SDK for Desktop, iOS and iOS simulator
     sdk = find_apple_sdk('macosx', 10, 6)
     if sdk is None:
