@@ -209,6 +209,9 @@ def install_mac_ports(prefix=None):
                     f.write("export PATH=%s\n" % os.environ['PATH'])
                     f.write("export MANPATH=%s\n" % os.environ['MANPATH'])
                     f.write("export PERL5LIB=%s\n" % os.environ['PERL5LIB'])
+            else:
+                print 'Could not retrieve Mac Ports source file from ' + MACPORTS_URL
+                exit(1)
 
     print 'Mac Ports is available at %s' % port_path
     return port_path
