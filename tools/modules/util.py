@@ -277,8 +277,11 @@ def check_host_tools():
             Popen(shlex.split(cmd), cwd = python_build, env=os.environ).communicate()
         cmd = 'make V=0 install -k -j%d' % multiprocessing.cpu_count()
         Popen(shlex.split(cmd), cwd = python_build, env=os.environ).communicate()
+        # Workaround: For reasons unknown, the host Python build process fails to install the standard library when run
+        # for the first time in Ubuntu Raring (13.04). Running the install a second time appears to succeed, so here we go:
+        Popen(shlex.split(cmd), cwd = python_build, env=os.environ).communicate()
         # Check that it built successfully
-        if not isfile(join(python_build, 'python')) or not isfile(join(python_build, 'Parser', 'pgen')):
+        if not isfile(HOSTPYTHON) or not isfile(join(python_build, 'Parser', 'pgen')):
             error('Could not build Python for host system')
             exit()
         shutil.copy(join(python_build, 'Parser', 'pgen'), HOSTPGEN)
