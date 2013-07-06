@@ -74,7 +74,7 @@ ctypedef PyObject* PyObject_p
 ctypedef deque[_Task].iterator task_iterator
 
 cdef class GameLoopBase(object):
-    cdef public bint quit, paused, freezeRenderer, released
+    cdef public bint quit, paused, freezeRenderer, released, wasPaused
     cdef public double _fps
     cdef str platform
     cdef deque[_Task] *loading, *loading_tmp, *running, *running_tmp, *deferreds

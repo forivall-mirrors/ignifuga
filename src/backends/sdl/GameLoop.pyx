@@ -22,6 +22,7 @@ cdef class GameLoop(GameLoopBase):
         self.renderer = <Renderer>Gilbert().renderer
         self._screen_w, self._screen_h = self.renderer.screenSize
         self.paused = False
+        self.wasPaused = False
         self.ticks_second = SDL_GetPerformanceFrequency()
 
 #if DEBUG and (__LINUX__ or __OSX__ or __MINGW__)
@@ -84,39 +85,45 @@ cdef class GameLoop(GameLoopBase):
                 self.handleSDLEvent(&ev)
 
             if not self.paused:
+                if self.wasPaused:
+                    # We had a pause while processing events and now we are back, reset the frame time
+                    nowx = SDL_GetPerformanceCounter()
+                    now = nowx / freqx
+                    self.wasPaused = False
+
                 self.update(now)
                 if not self.freezeRenderer:
                     self.renderer.update(now)
 
-            # Sleep for the remainder of the alloted frame time, if there's time left
-            self.frame_time = SDL_GetPerformanceCounter()-nowx
-            remainingTime = self._interval  - self.frame_time / self.ticks_second
-            if remainingTime > 0:
+                # Sleep for the remainder of the alloted frame time, if there's time left
+                self.frame_time = SDL_GetPerformanceCounter()-nowx
+                remainingTime = self._interval  - self.frame_time / self.ticks_second
+                if remainingTime > 0:
 #if DEBUG and (__LINUX__ or __OSX__ or __MINGW__)
-                self.fw.update()
+                    self.fw.update()
 #endif
-                if self.enableRemoteScreen:
-                    if self.remoteScreenHandlers:
-                        jpegBuf = NULL
-                        jpegBufSize = 0
-                        if self.renderer.captureScreenJPEG(<unsigned char**>&jpegBuf, &jpegBufSize):
-                            screenCap = jpegBuf[:jpegBufSize]
-                            self.renderer.releaseCapturedScreenBufferJPEG(<unsigned char*>jpegBuf)
+                    if self.enableRemoteScreen:
+                        if self.remoteScreenHandlers:
                             jpegBuf = NULL
+                            jpegBufSize = 0
+                            if self.renderer.captureScreenJPEG(<unsigned char**>&jpegBuf, &jpegBufSize):
+                                screenCap = jpegBuf[:jpegBufSize]
+                                self.renderer.releaseCapturedScreenBufferJPEG(<unsigned char*>jpegBuf)
+                                jpegBuf = NULL
 
-                            for handler in self.remoteScreenHandlers:
-                                handler.screen = screenCap
-                                handler.screenSize = jpegBufSize
-                                handler.sem.release()
+                                for handler in self.remoteScreenHandlers:
+                                    handler.screen = screenCap
+                                    handler.screenSize = jpegBufSize
+                                    handler.sem.release()
+                        # If remote screen is enabled, the renderer won't flip automatically because its waiting for us to order the screenshot
+                        self.renderer.flip()
+
+                    with nogil: # No gil in case there's other threads waiting for us (for example rconsole)
+                        SDL_Delay( remainingTime)
+                elif self.enableRemoteScreen:
                     # If remote screen is enabled, the renderer won't flip automatically because its waiting for us to order the screenshot
+                    # in this case, there's not enough time
                     self.renderer.flip()
-
-                with nogil: # No gil in case there's other threads waiting for us (for example rconsole)
-                    SDL_Delay( remainingTime)
-            elif self.enableRemoteScreen:
-                # If remote screen is enabled, the renderer won't flip automatically because its waiting for us to order the screenshot
-                # in this case, there's not enough time
-                self.renderer.flip()
 
             if self.quit:
                 break
@@ -193,6 +200,7 @@ cdef class GameLoop(GameLoopBase):
                 debug('Window hidden')
                 if self.pauseOnFocusLost:
                     self.paused = True
+                    self.wasPaused = True
             elif winev.event == SDL_WINDOWEVENT_RESTORED:
                 debug('Window is being restored')
                 if self.pauseOnFocusLost:
@@ -201,6 +209,7 @@ cdef class GameLoop(GameLoopBase):
             elif winev.event == SDL_WINDOWEVENT_MINIMIZED:
                 if self.pauseOnFocusLost:
                     self.paused = True
+                    self.wasPaused = True
                 debug('Window minimized')
             elif winev.event == SDL_WINDOWEVENT_FOCUS_GAINED:
                 debug('Window focus gained')
@@ -217,6 +226,7 @@ cdef class GameLoop(GameLoopBase):
                 if self.pauseOnFocusLost:
                     debug('Pausing')
                     self.paused = True
+                    self.wasPaused = True
                     Mix_PauseMusic()
                     Mix_Pause(-1)
                     debug('Paused')
