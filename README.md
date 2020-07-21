@@ -5,7 +5,7 @@ Ignifuga is a multi platform (Windows/Linux/OS X/iOS/Android) 2D hardware accele
 inspired by similar offerings like Cocos2D, Cocos2D for iPhone, and AndEngine. All your game logic code along with the
 engine’s and supporting tools is converted to C during the build process, and compiled into one big standalone binary
 for each of the supported platforms (please refer to the FAQ for more information). The project is currently in heavy
-development as the engine for [The Gaucho](http://whoisthegaucho.com), and it should be fairly usable already, but we don’t give any guarantees, so
+development as the engine for [The Gaucho](https://thegauchogame.com), and it should be fairly usable already, but we don’t give any guarantees, so
 the expected performance may range from not even working to attaining consciousness and starting the third world war for
 all we know. At the very least, we hope that it lives up to its name and it doesn’t catch fire.
 
